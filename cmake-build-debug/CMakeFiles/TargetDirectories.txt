@@ -1,0 +1,3 @@
+C:/Programmig in SPBSTU/Course-work/cmake-build-debug/CMakeFiles/Kursach.dir
+C:/Programmig in SPBSTU/Course-work/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Programmig in SPBSTU/Course-work/cmake-build-debug/CMakeFiles/rebuild_cache.dir
