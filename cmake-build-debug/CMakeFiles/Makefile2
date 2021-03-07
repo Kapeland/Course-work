@@ -57,7 +57,7 @@ CMAKE_BINARY_DIR = "C:\Programmig in SPBSTU\Course-work\cmake-build-debug"
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
-all: CMakeFiles\Kursach.dir\all
+all: CMakeFiles\Course-work.dir\all
 
 .PHONY : all
 
@@ -67,36 +67,36 @@ preinstall:
 .PHONY : preinstall
 
 # The main recursive "clean" target.
-clean: CMakeFiles\Kursach.dir\clean
+clean: CMakeFiles\Course-work.dir\clean
 
 .PHONY : clean
 
 #=============================================================================
-# Target rules for target CMakeFiles/Kursach.dir
+# Target rules for target CMakeFiles/Course-work.dir
 
 # All Build rule for target.
-CMakeFiles\Kursach.dir\all:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Kursach.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Kursach.dir\depend
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Kursach.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Kursach.dir\build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir="C:\Programmig in SPBSTU\Course-work\cmake-build-debug\CMakeFiles" --progress-num=1,2 "Built target Kursach"
-.PHONY : CMakeFiles\Kursach.dir\all
+CMakeFiles\Course-work.dir\all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Course-work.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Course-work.dir\depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Course-work.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Course-work.dir\build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir="C:\Programmig in SPBSTU\Course-work\cmake-build-debug\CMakeFiles" --progress-num=1,2 "Built target Course-work"
+.PHONY : CMakeFiles\Course-work.dir\all
 
 # Build rule for subdir invocation for target.
-CMakeFiles\Kursach.dir\rule: cmake_check_build_system
+CMakeFiles\Course-work.dir\rule: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start "C:\Programmig in SPBSTU\Course-work\cmake-build-debug\CMakeFiles" 2
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 /nologo -$(MAKEFLAGS) CMakeFiles\Kursach.dir\all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 /nologo -$(MAKEFLAGS) CMakeFiles\Course-work.dir\all
 	$(CMAKE_COMMAND) -E cmake_progress_start "C:\Programmig in SPBSTU\Course-work\cmake-build-debug\CMakeFiles" 0
-.PHONY : CMakeFiles\Kursach.dir\rule
+.PHONY : CMakeFiles\Course-work.dir\rule
 
 # Convenience name for target.
-Kursach: CMakeFiles\Kursach.dir\rule
+Course-work: CMakeFiles\Course-work.dir\rule
 
-.PHONY : Kursach
+.PHONY : Course-work
 
 # clean rule for target.
-CMakeFiles\Kursach.dir\clean:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Kursach.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Kursach.dir\clean
-.PHONY : CMakeFiles\Kursach.dir\clean
+CMakeFiles\Course-work.dir\clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Course-work.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Course-work.dir\clean
+.PHONY : CMakeFiles\Course-work.dir\clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

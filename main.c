@@ -1,4 +1,5 @@
 #include <GL/glut.h>
+#include <stdlib.h>
 #include <math.h>
 
 #define M_PI 3.14159265358979323846
@@ -9,7 +10,7 @@ void display() {
 	glClear(GL_COLOR_BUFFER_BIT);
 
 
-	double cnt = 100;
+	double cnt = 120;
 	double l = 60;
 	double a = acos(-1) * 2.0 / 50.0;
 
@@ -42,6 +43,6 @@ int main(int argc, char **argv) {
 	glutCreateWindow("Checkers");
 	glutReshapeFunc(reshape);
 	glutDisplayFunc(display);
-
 	glutMainLoop();
+
 }

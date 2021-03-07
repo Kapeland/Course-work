@@ -115,17 +115,17 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named Kursach
+# Target rules for targets named Course-work
 
 # Build rule for target.
-Kursach: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 /nologo -$(MAKEFLAGS) Kursach
-.PHONY : Kursach
+Course-work: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 /nologo -$(MAKEFLAGS) Course-work
+.PHONY : Course-work
 
 # fast build rule for target.
-Kursach\fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Kursach.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Kursach.dir\build
-.PHONY : Kursach\fast
+Course-work\fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Course-work.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Course-work.dir\build
+.PHONY : Course-work\fast
 
 main.obj: main.c.obj
 
@@ -133,7 +133,7 @@ main.obj: main.c.obj
 
 # target to build an object file
 main.c.obj:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Kursach.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Kursach.dir\main.c.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Course-work.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Course-work.dir\main.c.obj
 .PHONY : main.c.obj
 
 main.i: main.c.i
@@ -142,7 +142,7 @@ main.i: main.c.i
 
 # target to preprocess a source file
 main.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Kursach.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Kursach.dir\main.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Course-work.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Course-work.dir\main.c.i
 .PHONY : main.c.i
 
 main.s: main.c.s
@@ -151,7 +151,7 @@ main.s: main.c.s
 
 # target to generate assembly for a file
 main.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Kursach.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Kursach.dir\main.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Course-work.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\Course-work.dir\main.c.s
 .PHONY : main.c.s
 
 # Help Target
@@ -162,7 +162,7 @@ help:
 	@echo ... depend
 	@echo ... edit_cache
 	@echo ... rebuild_cache
-	@echo ... Kursach
+	@echo ... Course-work
 	@echo ... main.obj
 	@echo ... main.i
 	@echo ... main.s
