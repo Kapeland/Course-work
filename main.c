@@ -17,6 +17,11 @@ enum levels{
 	second,
 	fird
 };
+enum place{
+	None,
+	UpLeft, UpRight,
+	DownLeft, DownRight
+};
 
 typedef enum{
 	black, white, red
@@ -405,7 +410,10 @@ void AIMoveChecker(int y, int x, int yy, int xx){
 	desk[yy][xx].checker_side = desk[y][x].checker_side;
 	desk[yy][xx].role = desk[y][x].role;
 
+
+	WasMoved = true;
 }
+
 void PressedToMove(void){
 	space_pressed = true;
 	Move_from.press_x = cur_cursor_x;
@@ -430,6 +438,22 @@ int PossibilityToEatUp(const int yy, const int xx){
 	return NOT_POSSIBLE;
 }
 
+int AIPossibilityToEatUp(const int yy, const int xx){
+	if(xx + 2 < DESK_SIZE && yy + 2 < DESK_SIZE){
+		if((desk[yy + 2][xx + 2].field == empty) && \
+            desk[yy + 1][xx + 1].field == occup && \
+            desk[yy + 1][xx + 1].checker_side != turn)
+			return UpRight;
+	}
+	if(xx - 2 >= 0 && yy + 2 < DESK_SIZE){
+		if((desk[yy + 2][xx - 2].field == empty) && \
+            desk[yy + 1][xx - 1].field == occup && \
+            desk[yy + 1][xx - 1].checker_side != turn)
+			return UpLeft;
+	}
+	return None;
+}
+
 int PossibilityToEatDown(const int yy, const int xx){
 	const int POSSIBLE = 1, NOT_POSSIBLE = 0;
 	if(xx + 2 <= DESK_SIZE - 1 && yy - 2 >= 0){
@@ -445,6 +469,22 @@ int PossibilityToEatDown(const int yy, const int xx){
 			return POSSIBLE;
 	}
 	return NOT_POSSIBLE;
+}
+
+int AIPossibilityToEatDown(const int yy, const int xx){
+	if(xx + 2 < DESK_SIZE && yy - 2 >= 0){
+		if((desk[yy - 2][xx + 2].field == empty) && \
+            desk[yy - 1][xx + 1].field == occup && \
+            desk[yy - 1][xx + 1].checker_side != turn)
+			return DownRight;
+	}
+	if(xx - 2 >= 0 && yy - 2 >= 0){
+		if((desk[yy - 2][xx - 2].field == empty) && \
+            desk[yy - 1][xx - 1].field == occup && \
+            desk[yy - 1][xx - 1].checker_side != turn)
+			return DownLeft;
+	}
+	return None;
 }
 
 int PossibilityToEatByQueen(const int yy, const int xx){
@@ -638,19 +678,41 @@ void SpecialKeyboard(int key, int x, int y){
 		}
 	}
 }
-void AIRecCall(int y, int x, int role, int* flag){
+
+void AIEat(int x, int y, int place, int role){
+	if(role == soldier){
+		if(place == UpRight){
+			AIMoveChecker(y, x, y + 2, x + 2);
+			desk[y + 1][x + 1].field = empty;
+		}
+		if(place == UpLeft){
+			AIMoveChecker(y, x, y + 2, x - 2);
+			desk[y + 1][x - 1].field = empty;
+		}
+		if(place == DownLeft){
+			AIMoveChecker(y, x, y - 2, x - 2);
+			desk[y - 1][x - 1].field = empty;
+		}
+		if(place == DownRight){
+			AIMoveChecker(y, x, y - 2, x - 2);
+			desk[y - 1][x + 1].field = empty;
+		}
+	}
+
+}
+
+void AIRecCall(int y, int x, int role){
 	//TODO подумать, будет ли он правильно ходить назад, если нужно бить
 	//TODO выяснить, можно ли ходить в ту же клетку, где была шашка
-	//flag показывает был ли сделан ход
 	if(role == soldier){
 		int xx = 0, yy = 0; //x,y - from. xx, yy - to.
 		while(xx < DESK_SIZE && yy < DESK_SIZE){
 			if(xx < DESK_SIZE && yy < DESK_SIZE){
-				if(Possible(xx, yy)){
+				/*if(Possible(xx, yy)){
 					AIMoveChecker(y, x, yy, xx);
-					*flag = 1;
-					AIRecCall(yy, xx, desk[yy][xx].role, flag);
-				}
+					WasMoved = true;
+					AIRecCall(yy, xx, desk[yy][xx].role);
+				}*/
 			}
 			xx++;
 			if(xx >= DESK_SIZE){
@@ -663,14 +725,41 @@ void AIRecCall(int y, int x, int role, int* flag){
 }
 
 void AIPlayer(int lvl){
+	//TODO доделать ход королевы
 	if(lvl == first){
-		//TODO доделать ход королевы и посмотреть возможно что-то сбилось в индексах мест куда шашка ходит и откуда в процессе работы функции AIRecCall
+		WasMoved = false;
 		for(int i = 0; i < DESK_SIZE; ++i){
 			for(int j = 0; j < DESK_SIZE; ++j){
 				if(desk[i][j].role == soldier){
-					int flag = 0;
-					AIRecCall(i, j, soldier, &flag);
-					if(flag == 1){
+					if(AIPossibilityToEatUp(i, j) == None){
+						continue;
+					}else if(AIPossibilityToEatUp(i, j) == UpRight){
+						AIMoveChecker(i, j, i + 2, j + 2);
+						AIEat(i, j, UpRight, soldier);
+					}else if(AIPossibilityToEatUp(i, j) == UpLeft){
+						AIMoveChecker(i, j, i + 2, j - 2);
+						AIEat(i, j, UpLeft, soldier);
+					}else if(AIPossibilityToEatDown(i, j) == None){
+						continue;
+					}else if(AIPossibilityToEatDown(i, j) == DownRight){
+						AIMoveChecker(i, j, i - 2, j + 2);
+						AIEat(i, j, DownRight, soldier);
+					}else if(AIPossibilityToEatDown(i, j) == DownLeft){
+						AIMoveChecker(i, j, i - 2, j - 2);
+						AIEat(i, j, DownLeft, soldier);
+					}
+				}
+
+			}
+		}
+	}
+	if(lvl == second){
+		for(int i = 0; i < DESK_SIZE; ++i){
+			for(int j = 0; j < DESK_SIZE; ++j){
+				if(desk[i][j].role == soldier){
+					WasMoved = false;
+					AIRecCall(i, j, soldier);
+					if(WasMoved == true){
 						turn = white;
 						return;
 					}
@@ -681,6 +770,7 @@ void AIPlayer(int lvl){
 		}
 	}
 }
+
 int main(int argc, char** argv){
 	SetConsoleCP(1251);
 	SetConsoleOutputCP(1251);
@@ -690,7 +780,7 @@ int main(int argc, char** argv){
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB);
 	glutInitWindowSize(Width, Height);
-	glutCreateWindow("Шашки.exe");
+	glutCreateWindow("Checkers.exe");
 
 	glutDisplayFunc(Display);
 	glutIdleFunc(Display);
