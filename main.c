@@ -886,7 +886,7 @@ int Possible(int xx, int yy, int* EatOrNot, Pressed* EatenOne){
 	return SUCCESS;
 }
 
-void MoveChecker(int EatOrNot, Pressed EatenOne){
+void MoveChecker(const int EatOrNot, Pressed EatenOne){
 	Move_to.press_x = cur_cursor_x;
 	Move_to.press_y = cur_cursor_y;
 	desk[Move_from.press_y][Move_from.press_x].field = empty;
@@ -904,7 +904,7 @@ void MoveChecker(int EatOrNot, Pressed EatenOne){
 	WasMoved = true;
 }
 
-void AIMoveChecker(int y, int x, int EatOrNot, Pressed EatenOne){
+void AIMoveChecker(const int y, const int x, const int EatOrNot, Pressed EatenOne){
 	Move_to.press_x = x;
 	Move_to.press_y = y;
 	desk[Move_from.press_y][Move_from.press_x].field = empty;
@@ -1060,6 +1060,88 @@ int PossibilityToEatByQueen(const int yy, const int xx){
 	return NOT_POSSIBLE;
 }
 
+int AIPossibilityToEatByQueen(const int yy, const int xx, int* y, int* x, int* direction){
+	//yy & xx - pos of Q, y & x - pos of Q after move
+	const int POSSIBLE = 1, NOT_POSSIBLE = 0;
+	int EnemyOnWay = 0;
+	int i = 0, j = 0;
+	*y = -100;
+	*x = -100;
+	for(i = yy + 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j--){//UL
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
+				EnemyOnWay++;
+				if(EnemyOnWay > 1)
+					break;
+			}
+			if(desk[i][j].checker_side == turn)
+				break;
+			else if((j - 1) >= 0 && (i + 1) < DESK_SIZE && desk[i + 1][j - 1].field == empty){
+				*direction = UL;
+				*y = i + 1;
+				*x = j - 1;
+				return POSSIBLE;
+			}
+		}
+	}
+	EnemyOnWay = 0;
+	for(i = yy + 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j++){//UR
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
+				EnemyOnWay++;
+				if(EnemyOnWay > 1)
+					break;
+			}
+			if(desk[i][j].checker_side == turn)
+				break;
+			else if((j + 1) < DESK_SIZE && (i + 1) < DESK_SIZE && desk[i + 1][j + 1].field == empty){
+				*direction = UR;
+				*y = i + 1;
+				*x = j + 1;
+				return POSSIBLE;
+			}
+		}
+	}
+	EnemyOnWay = 0;
+	for(i = yy - 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j--){//DL
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
+				EnemyOnWay++;
+				if(EnemyOnWay > 1)
+					break;
+			}
+			if(desk[i][j].checker_side == turn)
+				break;
+			else if((j - 1) >= 0 && (i - 1) >= 0 && desk[i - 1][j - 1].field == empty){
+				*direction = DL;
+				*y = i - 1;
+				*x = j - 1;
+				return POSSIBLE;
+			}
+		}
+	}
+	EnemyOnWay = 0;
+	for(i = yy - 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j++){//DR
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
+				EnemyOnWay++;
+				if(EnemyOnWay > 1)
+					break;
+			}
+			if(desk[i][j].checker_side == turn)
+				break;
+			else if((j + 1) < DESK_SIZE && (i - 1) >= 0 && desk[i - 1][j + 1].field == empty){
+				*direction = DR;
+				*y = i - 1;
+				*x = j + 1;
+				return POSSIBLE;
+			}
+		}
+	}
+	*direction = IMP;
+	return NOT_POSSIBLE;
+}
+
 int PossibleToEat(void){
 	// turn - чей ход, глобальная переменная
 	int i = 0, j = 0;
@@ -1081,12 +1163,9 @@ int PossibleToEat(void){
 
 int PossibleToGoUpOrDown(void){
 	const int POSSIBLE = 1, NOT_POSSIBLE = 0;
-	int i = 0, j = 0;
-	int yy = 0, xx = 0;
-	for(i = 0; i < DESK_SIZE; i++){
-		for(j = 0; j < DESK_SIZE; j++){
-			if(desk[i][j].field == occup && desk[i][j].checker_side == turn && desk[i][j].role == soldier) // простой ход шашкой вперед
-			{
+	for(int i = 0; i < DESK_SIZE; i++){
+		for(int j = 0; j < DESK_SIZE; j++){
+			if(desk[i][j].field == occup && desk[i][j].checker_side == turn && desk[i][j].role == soldier){// простой ход шашкой вперед
 				if(desk[i][j].checker_side == white){
 					if(i + 1 < DESK_SIZE && j - 1 >= 0 && desk[i + 1][j - 1].field == empty)
 						return POSSIBLE;
@@ -1099,33 +1178,17 @@ int PossibleToGoUpOrDown(void){
 						return POSSIBLE;
 				}
 			}else if(desk[i][j].field == occup && desk[i][j].checker_side == turn && desk[i][j].role == queen){
-				// верх лево
-				for(yy = i + 1, xx = j - 1; xx < DESK_SIZE && yy < DESK_SIZE && yy >= 0 && xx >= 0; yy++, xx--){
-					if(desk[yy][xx].field == empty)
-						return POSSIBLE;
-					else
-						break;
+				if(i + 1 < DESK_SIZE && j - 1 >= 0 && desk[i + 1][j - 1].field == empty){//UL
+					return POSSIBLE;
 				}
-				// верх право
-				for(yy = i + 1, xx = j + 1; xx < DESK_SIZE && yy < DESK_SIZE && yy >= 0 && xx >= 0; yy++, xx++){
-					if(desk[yy][xx].field == empty)
-						return POSSIBLE;
-					else
-						break;
+				if(j + 1 < DESK_SIZE && i + 1 < DESK_SIZE && desk[i + 1][j + 1].field == empty){//UR
+					return POSSIBLE;
 				}
-				// низ лево
-				for(yy = i - 1, xx = j - 1; xx < DESK_SIZE && yy < DESK_SIZE && yy >= 0 && xx >= 0; yy--, xx--){
-					if(desk[yy][xx].field == empty)
-						return POSSIBLE;
-					else
-						break;
+				if(i - 1 >= 0 && j - 1 >= 0 && desk[i - 1][j - 1].field == empty){//DL
+					return POSSIBLE;
 				}
-				// низ право
-				for(yy = i - 1, xx = j + 1; xx < DESK_SIZE && yy < DESK_SIZE && yy >= 0 && xx >= 0; yy--, xx++){
-					if(desk[yy][xx].field == empty)
-						return POSSIBLE;
-					else
-						break;
+				if(j + 1 < DESK_SIZE && i - 1 >= 0 && desk[i - 1][j + 1].field == empty){//DR
+					return POSSIBLE;
 				}
 			}
 		}
@@ -1189,7 +1252,7 @@ void Enter(void){
 	space_pressed = false;
 }
 
-void EatAsMuchAsPossibleAsSoldier(int y, int x){
+void EatAsMuchAsPossible(const int y, const int x, int role){
 	if(x < 0 || x >= DESK_SIZE || y < 0 || y >= DESK_SIZE){
 		return;
 	}
@@ -1211,43 +1274,43 @@ void EatAsMuchAsPossibleAsSoldier(int y, int x){
 		EatenOne.press_x = cur_cursor_x + 1;
 		EatenOne.press_y = cur_cursor_y - 1;
 		AIMoveChecker(cur_cursor_y - 2, cur_cursor_x + 2, EatOrNot, EatenOne);
-		if(Move_to.press_y == 0)
+		if(Move_to.press_y == 0 && role != queen)
 			MakeQueen();
 		glutPostRedisplay();
-		EatAsMuchAsPossibleAsSoldier(cur_cursor_y - 2, cur_cursor_x + 2);
+		EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x + 2, role);
 	}
 	if(direction == DL){
 		EatenOne.press_x = cur_cursor_x - 1;
 		EatenOne.press_y = cur_cursor_y - 1;
 		AIMoveChecker(cur_cursor_y - 2, cur_cursor_x - 2, EatOrNot, EatenOne);
-		if(Move_to.press_y == 0)
+		if(Move_to.press_y == 0 && role != queen)
 			MakeQueen();
 		glutPostRedisplay();
-		EatAsMuchAsPossibleAsSoldier(cur_cursor_y - 2, cur_cursor_x - 2);
+		EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x - 2, role);
 	}
 	if(direction == UR){
 		EatenOne.press_x = cur_cursor_x + 1;
 		EatenOne.press_y = cur_cursor_y + 1;
 		AIMoveChecker(cur_cursor_y + 2, cur_cursor_x + 2, EatOrNot, EatenOne);
-		if(Move_to.press_y == 0)
+		if(Move_to.press_y == 0 && role != queen)
 			MakeQueen();
 		glutPostRedisplay();
-		EatAsMuchAsPossibleAsSoldier(cur_cursor_y + 2, cur_cursor_x + 2);
+		EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x + 2, role);
 	}
 	if(direction == UL){
 		EatenOne.press_x = cur_cursor_x - 1;
 		EatenOne.press_y = cur_cursor_y + 1;
 		AIMoveChecker(cur_cursor_y + 2, cur_cursor_x - 2, EatOrNot, EatenOne);
-		if(Move_to.press_y == 0)
+		if(Move_to.press_y == 0 && role != queen)
 			MakeQueen();
 		glutPostRedisplay();
-		EatAsMuchAsPossibleAsSoldier(cur_cursor_y + 2, cur_cursor_x - 2);
+		EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x - 2, role);
 	}
 }
 
 void AIProPlayer(void){
-	for(cur_cursor_y = 0; cur_cursor_y < DESK_SIZE; ++cur_cursor_y){
-		for(cur_cursor_x = 0; cur_cursor_x < DESK_SIZE; ++cur_cursor_x){
+	for(cur_cursor_y = DESK_SIZE - 1; cur_cursor_y >= 0; --cur_cursor_y){
+		for(cur_cursor_x = DESK_SIZE - 1; cur_cursor_x >= 0; --cur_cursor_x){
 			int EatOrNot = NO_EAT, PossibilityToEat = 0; // Было ли съедение или нет
 			Pressed EatenOne = {0, 0}; // Координаты съеденной, если таковая будет
 
@@ -1266,7 +1329,7 @@ void AIProPlayer(void){
 							if(Move_to.press_y == 0)
 								MakeQueen();
 							glutPostRedisplay();
-							EatAsMuchAsPossibleAsSoldier(cur_cursor_y - 2, cur_cursor_x + 2);
+							EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x + 2, soldier);
 						}
 						if(direction == DL){
 							EatenOne.press_x = cur_cursor_x - 1;
@@ -1275,7 +1338,7 @@ void AIProPlayer(void){
 							if(Move_to.press_y == 0)
 								MakeQueen();
 							glutPostRedisplay();
-							EatAsMuchAsPossibleAsSoldier(cur_cursor_y - 2, cur_cursor_x - 2);
+							EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x - 2, soldier);
 						}
 						return;
 					}else if((direction = PossibilityToEatUp(cur_cursor_y, cur_cursor_x))){
@@ -1288,7 +1351,7 @@ void AIProPlayer(void){
 							if(Move_to.press_y == 0)
 								MakeQueen();
 							glutPostRedisplay();
-							EatAsMuchAsPossibleAsSoldier(cur_cursor_y + 2, cur_cursor_x + 2);
+							EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x + 2, soldier);
 						}
 						if(direction == UL){
 							EatenOne.press_x = cur_cursor_x - 1;
@@ -1297,11 +1360,11 @@ void AIProPlayer(void){
 							if(Move_to.press_y == 0)
 								MakeQueen();
 							glutPostRedisplay();
-							EatAsMuchAsPossibleAsSoldier(cur_cursor_y + 2, cur_cursor_x - 2);
+							EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x - 2, soldier);
 						}
 						return;
-					}else if(desk[cur_cursor_y][cur_cursor_x].checker_side == black && PossibilityToEat == 0){//возможен простой ход
-						if((cur_cursor_y - 1 >= 0 && cur_cursor_x - 1 >= 0 && desk[cur_cursor_y - 1][cur_cursor_x - 1].field == empty)){
+					}else if(PossibilityToEat == 0){//возможен простой ход
+						if(cur_cursor_y - 1 >= 0 && cur_cursor_x - 1 >= 0 && desk[cur_cursor_y - 1][cur_cursor_x - 1].field == empty){//DL
 							PressedToMove();
 							AIMoveChecker(cur_cursor_y - 1, cur_cursor_x - 1, EatOrNot, EatenOne);
 							if(Move_to.press_y == 0)
@@ -1309,7 +1372,7 @@ void AIProPlayer(void){
 							glutPostRedisplay();
 							return;
 						}
-						if(cur_cursor_y - 1 >= 0 && cur_cursor_x + 1 < DESK_SIZE && desk[cur_cursor_y - 1][cur_cursor_x + 1].field == empty){
+						if(cur_cursor_y - 1 >= 0 && cur_cursor_x + 1 < DESK_SIZE && desk[cur_cursor_y - 1][cur_cursor_x + 1].field == empty){//DR
 							PressedToMove();
 							AIMoveChecker(cur_cursor_y - 1, cur_cursor_x + 1, EatOrNot, EatenOne);
 							if(Move_to.press_y == 0)
@@ -1317,34 +1380,55 @@ void AIProPlayer(void){
 							glutPostRedisplay();
 							return;
 						}
-					}else if(desk[cur_cursor_y][cur_cursor_x].checker_side == white && PossibilityToEat == 0){//возможен простой ход
-						if(cur_cursor_y + 1 < DESK_SIZE && cur_cursor_x - 1 >= 0 && desk[cur_cursor_y + 1][cur_cursor_x - 1].field == empty){
-							PressedToMove();
-							AIMoveChecker(cur_cursor_y + 1, cur_cursor_x - 1, EatOrNot, EatenOne);
-							if(Move_to.press_y == 0)
-								MakeQueen();
-							glutPostRedisplay();
-							return;
-						}
-						if(cur_cursor_y + 1 < DESK_SIZE && cur_cursor_x + 1 < DESK_SIZE && desk[cur_cursor_y + 1][cur_cursor_x + 1].field == empty){
-							PressedToMove();
-							AIMoveChecker(cur_cursor_y + 1, cur_cursor_x + 1, EatOrNot, EatenOne);
-							if(Move_to.press_y == 0)
-								MakeQueen();
-							glutPostRedisplay();
-							return;
-						}
 					}
 				}else if(desk[cur_cursor_y][cur_cursor_x].role == queen){
-					if(PossibilityToEatByQueen(cur_cursor_y, cur_cursor_x)){
+					int x = -100, y = -100, direction = -1;
+					if(AIPossibilityToEatByQueen(cur_cursor_y, cur_cursor_x, &y, &x, &direction)){
+						EatOrNot = EAT;
 						PressedToMove();
+						if(direction == UL){
+							EatenOne.press_x = x + 1;
+							EatenOne.press_y = y - 1;
+						}
+						if(direction == UR){
+							EatenOne.press_x = x - 1;
+							EatenOne.press_y = y - 1;
+						}
+						if(direction == DL){
+							EatenOne.press_x = x + 1;
+							EatenOne.press_y = y + 1;
+						}
+						if(direction == DR){
+							EatenOne.press_x = x - 1;
+							EatenOne.press_y = y + 1;
+						}
+						AIMoveChecker(y, x, EatOrNot, EatenOne);
+						glutPostRedisplay();
+						EatAsMuchAsPossible(y, x, queen);
+						return;
+					}else if(cur_cursor_y + 1 < DESK_SIZE && cur_cursor_x - 1 >= 0 && desk[cur_cursor_y + 1][cur_cursor_x - 1].field == empty){//UL
+						PressedToMove();
+						AIMoveChecker(cur_cursor_y + 1, cur_cursor_x - 1, EatOrNot, EatenOne);
+						glutPostRedisplay();
+						return;
+					}else if(cur_cursor_x + 1 < DESK_SIZE && cur_cursor_y + 1 < DESK_SIZE && desk[cur_cursor_y + 1][cur_cursor_x + 1].field == empty){//UR
+						PressedToMove();
+						AIMoveChecker(cur_cursor_y + 1, cur_cursor_x + 1, EatOrNot, EatenOne);
+						glutPostRedisplay();
+						return;
+					}else if(cur_cursor_y - 1 >= 0 && cur_cursor_x - 1 >= 0 && desk[cur_cursor_y - 1][cur_cursor_x - 1].field == empty){//DL
+						PressedToMove();
+						AIMoveChecker(cur_cursor_y - 1, cur_cursor_x - 1, EatOrNot, EatenOne);
+						glutPostRedisplay();
+						return;
+					}else if(cur_cursor_x + 1 < DESK_SIZE && cur_cursor_y - 1 >= 0 && desk[cur_cursor_y - 1][cur_cursor_x + 1].field == empty){//DR
+						PressedToMove();
+						AIMoveChecker(cur_cursor_y - 1, cur_cursor_x + 1, EatOrNot, EatenOne);
+						glutPostRedisplay();
+						return;
 					}
-					//TODO доделать
 				}
-
 			}
-
-
 		}
 	}
 }
@@ -1363,8 +1447,7 @@ void Keyboard(unsigned char key, int x, int y){
 		char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
 		char nums[] = "0123456789";
 
-		if(key == 13) // Enter
-		{
+		if(key == 13){// Enter
 			Status = GAME;
 			//.Запись
 			AddToList(Name, NumOfMoves);
@@ -1374,10 +1457,10 @@ void Keyboard(unsigned char key, int x, int y){
 				Name[i] = '\0';
 			NumOfMoves = 0;
 		}
-		if(key == 0x08) // backspace
-		{
-			if(NameLen)
+		if(key == 0x08){// backspace
+			if(NameLen){
 				Name[NameLen - 1] = '\0';
+			}
 		}
 		for(i = 0; i < strlen(alphabet); i++){
 			if(alphabet[i] == key || Alphabet[i] == key){
