@@ -5,9 +5,12 @@
 #include <string.h>
 #include <GL/glut.h>
 #include <math.h>
+#include <time.h>
 
 #if defined(_WIN32) || defined (_WIN64)
+
 #include <windows.h>
+
 #define WINDOWS
 #endif
 
@@ -15,6 +18,9 @@
 #include <unistd.h>
 #define LINUX
 #endif
+
+#define TRUE 1
+#define FALSE 0
 
 #define DESK_SIZE 8
 #define NO_EAT -1
@@ -24,6 +30,7 @@
 #define NAME_LEN 11
 #define BIG_STRING_NAME 20
 #define SMALL_STRING 5
+#define MAX_POSITIONS 15
 
 #define MENU 1
 #define GAME 2
@@ -42,13 +49,13 @@ int Level = VSAI;
 GLint Width = 1050, Height = 800;
 const int CubeSize = 100; // Размер квадрата
 
-typedef enum {
+typedef enum{
 	black, white
 }colors;
-typedef enum {
+typedef enum{
 	false, true
 }logik;
-enum Moves {
+enum Moves{
 	IMP, DR, DL, UR, UL
 };
 
@@ -60,7 +67,7 @@ int cur_cursor_x = 0, cur_cursor_y = 0;
 char Alphabet[] = "ABCDEFGHIGKLMNOPQRSTUVWXYZ";
 char Name[NAME_LEN] = "";
 
-typedef struct { // 1 - x, 2 - y
+typedef struct{ // 1 - x, 2 - y
 	float Down_border;
 	float Left_border;
 	float Right_border;
@@ -68,31 +75,31 @@ typedef struct { // 1 - x, 2 - y
 	colors Color;
 }Buttons_;
 
-typedef struct {
+typedef struct{
 	int press_x;
 	int press_y;
 }Pressed;
 
-typedef struct {
+typedef struct{
 	colors checker_side; // Сторона шашки
-	enum {
+	enum{
 		empty, occup
 	}field; // Занято ли поле
 	colors field_col; // Цвет поля
-	enum {
+	enum{
 		soldier, queen
 	}role;
-	struct {
+	struct{
 		logik highlighted; // Курсор
 		logik toMove; // Захват пробела
 	}focused; // наведен ли курсор на поле logik focused;
-	struct {
+	struct{
 		float x;
 		float y;
 	}midLocation; // Координаты середины поля
 }Desk;
 
-typedef struct records_ {
+typedef struct records_{
 	char name_[NAME_LEN];
 	int Moves;
 	struct records_* next;
@@ -101,31 +108,31 @@ typedef struct records_ {
 
 Desk desk[DESK_SIZE][DESK_SIZE];
 Pressed Move_from, Move_to;
-Buttons_ Restart_button = { 0 }, Save_Position_button = { 0 }, Recover_Position_button = { 0 }, Developers_button = { 0 }, Records_button = { 0 };
+Buttons_ Restart_button = {0}, Save_Position_button = {0}, Recover_Position_button = {0}, Developers_button = {0}, Records_button = {0};
 records* head = NULL;
 
-char inChar(int a) {
+char inChar(int a){
 	return '0' + a;
 }
 
-void RecordListToFile(void) {
+void RecordListToFile(void){
 	records* tmp = head;
 	FILE* records = NULL;
 	records = fopen(RECORDS, "w");
-	if (records == NULL) {
+	if(records == NULL){
 		perror("FAIL. CAN'T OPEN RECORDS\n");
 		return;
 	}
-	while (tmp != NULL) {
+	while(tmp != NULL){
 		fprintf(records, "%s %d\n", tmp->name_, tmp->Moves);
 		tmp = tmp->next;
 	}
 }
 
-int SwapElOfList(records* a, records* b) {
+int SwapElOfList(records* a, records* b){
 	records* New = NULL;
 	New = (records*)malloc((sizeof(records)));
-	if (New == NULL) {
+	if(New == NULL){
 		perror("FAILED! CAN'T ALLOCATE MEMORY!");
 		return EXIT_FAILURE;
 	}
@@ -140,12 +147,12 @@ int SwapElOfList(records* a, records* b) {
 	return EXIT_SUCCESS;
 }
 
-void SortList(records* pointer) {
+void SortList(records* pointer){
 	int Cur = pointer->Moves;
 	records* tmp = pointer->previous;
-	while (tmp != NULL) {
-		if (tmp->Moves > Cur) {
-			if (SwapElOfList(tmp, pointer) == EXIT_FAILURE) {
+	while(tmp != NULL){
+		if(tmp->Moves > Cur){
+			if(SwapElOfList(tmp, pointer) == EXIT_FAILURE){
 				perror("ERROR, CANT ALLOCATE MEMORY\n");
 				return;
 			}
@@ -155,19 +162,18 @@ void SortList(records* pointer) {
 	}
 }
 
-int AddToList(char* forName, int forMoves) {
+int AddToList(char* forName, int forMoves){
 	records* tmp = head, * New = NULL;
-	if (tmp->Moves == 0) // Первый добавляемый элемент списка
+	if(tmp->Moves == 0) // Первый добавляемый элемент списка
 	{
 		memcpy(tmp->name_, forName, NAME_LEN);
 		tmp->Moves = forMoves;
 		tmp->next = NULL;
-	}
-	else {
-		while (tmp->next != NULL)
+	}else{
+		while(tmp->next != NULL)
 			tmp = tmp->next;
 		New = (records*)malloc((sizeof(records)));
-		if (New == NULL) {
+		if(New == NULL){
 			perror("FAILED! CAN'T ALLOCATE MEMORY!");
 			return EXIT_FAILURE;
 		}
@@ -182,9 +188,9 @@ int AddToList(char* forName, int forMoves) {
 	return EXIT_SUCCESS;
 }
 
-int CreateList(void) {
+int CreateList(void){
 	head = (records*)malloc((sizeof(records)));
-	if (head == NULL) {
+	if(head == NULL){
 		perror("FAILED! CAN'T ALLOCATE MEMORY!");
 		return EXIT_FAILURE;
 	}
@@ -195,10 +201,10 @@ int CreateList(void) {
 	return EXIT_SUCCESS;
 }
 
-void freeList(void) {
+void freeList(void){
 	records* tmp = NULL;
-	if (head != NULL) {
-		while (head->next != NULL) {
+	if(head != NULL){
+		while(head->next != NULL){
 			tmp = head;
 			head = head->next;
 			free(tmp);
@@ -207,14 +213,14 @@ void freeList(void) {
 	}
 }
 
-void AddMovesFromList(char* string, int Moves_, char* SmallString) {
+void AddMovesFromList(char* string, int Moves_, char* SmallString){
 	int NumOfNums = 0, Moves_2 = Moves_;
 	SmallString[0] = ' ';
-	while (Moves_2) {
+	while(Moves_2){
 		NumOfNums++;
 		Moves_2 /= 10;
 	}
-	while (Moves_) {
+	while(Moves_){
 		SmallString[NumOfNums] = inChar(Moves_ % 10);
 		NumOfNums--;
 		Moves_ /= 10;
@@ -223,15 +229,14 @@ void AddMovesFromList(char* string, int Moves_, char* SmallString) {
 	strcat(string, SmallString);
 }
 
-void GetStringOutOfList(records* tmp, char* string, int Nomer) {
-	char SmallString[SMALL_STRING] = { 0 };
-	if (Nomer < 10) // номер записи
+void GetStringOutOfList(records* tmp, char* string, int Nomer){
+	char SmallString[SMALL_STRING] = {0};
+	if(Nomer < 10) // номер записи
 	{
 		string[0] = inChar(Nomer);
 		string[1] = ')';
 		string[2] = ' ';
-	}
-	else {
+	}else{
 		string[0] = '1';
 		string[1] = '0';
 		string[2] = ')';
@@ -241,30 +246,30 @@ void GetStringOutOfList(records* tmp, char* string, int Nomer) {
 	AddMovesFromList(string, tmp->Moves, SmallString);
 }
 
-void openRecords(void) {
+void openRecords(void){
 	int count = 0;
 	FILE* Records = NULL;
 	// Временная память для считывания и записи в список
-	char forName[NAME_LEN] = { 0 };
+	char forName[NAME_LEN] = {0};
 	int forMoves = 0;
 
 	Records = fopen(RECORDS, "r");
-	if (Records == NULL) {
+	if(Records == NULL){
 		// Создаем файл для дальнейшей записи
 		Records = fopen(RECORDS, "w");
 		fclose(Records);
 		return;
 	}
-	if (Records == NULL) {
+	if(Records == NULL){
 		perror("FAIL. CAN'T OPEN RECORDS\n");
 		return;
 	}
 	// Считывание в линейный список если файл существовал и был непуст
-	if (CreateList() == EXIT_FAILURE)
+	if(CreateList() == EXIT_FAILURE)
 		return;
 
-	while ((fscanf(Records, "%s%*c%d%*c", forName, &forMoves) != EOF) && count <= 10) {
-		if (AddToList(forName, forMoves) == EXIT_FAILURE)
+	while((fscanf(Records, "%s%*c%d%*c", forName, &forMoves) != EOF) && count <= 10){
+		if(AddToList(forName, forMoves) == EXIT_FAILURE)
 			return;
 		count++;
 	}
@@ -272,18 +277,18 @@ void openRecords(void) {
 	fclose(Records);
 }
 
-void drawText(const char* string, int posX, const int posY) {
+void drawText(const char* string, int posX, const int posY){
 	const int add = 15, low_add = 8;
 	int i = 0;
 	int len = strlen(string);
 	posX -= add * len / 2;
-	while (string[i] != '\0') {
+	while(string[i] != '\0'){
 		glColor3f(0, 0, 0);
 		glRasterPos2i(posX, posY);
 		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, string[i]);
-		if (string[i] == 'I')
+		if(string[i] == 'I')
 			posX += add - low_add;
-		else if (string[i] == 'M')
+		else if(string[i] == 'M')
 			posX += add + low_add / 2;
 		else
 			posX += add;
@@ -291,8 +296,8 @@ void drawText(const char* string, int posX, const int posY) {
 	}
 }
 
-int firstBut(void) {
-	if (cursor == false) {
+int firstBut(void){
+	if(cursor == false){
 		cursor = true;
 		desk[0][0].focused.highlighted = true;
 		cur_cursor_x = 0;
@@ -302,49 +307,47 @@ int firstBut(void) {
 	return 0;
 }
 
-void SetCheckers(const int bot_checkers, const int top_checkers, int add_x, int add_y, int i, int k) {
+void SetCheckers(const int bot_checkers, const int top_checkers, int add_x, int add_y, int i, int k){
 	desk[i][k].field = occup;
-	if (i <= bot_checkers)
+	if(i <= bot_checkers)
 		desk[i][k].checker_side = white;
 	else
 		desk[i][k].checker_side = black;
 	desk[i][k].role = soldier;
 }
 
-void clearDesk(void) {
+void clearDesk(void){
 	int i = 0, j = 0;
-	for (i = 0; i < DESK_SIZE; i++) {
-		for (j = 0; j < DESK_SIZE; j++) {
+	for(i = 0; i < DESK_SIZE; i++){
+		for(j = 0; j < DESK_SIZE; j++){
 			desk[i][j].field = empty;
 		}
 	}
 }
 
-void setDesk(void) {
+void setDesk(void){
 	int i = 0, k = 0, add_y = 0, add_x = 0;
 	const int bot_checkers = 2, top_checkers = 5; // Включительно
-	for (i = 0; i < DESK_SIZE; i++) {
-		for (k = 0; k < DESK_SIZE; k++) {
+	for(i = 0; i < DESK_SIZE; i++){
+		for(k = 0; k < DESK_SIZE; k++){
 			desk[i][k].focused.highlighted = false;
 			desk[i][k].focused.toMove = false;
 			add_y = CubeSize * i;
 			add_x = CubeSize * k;
-			if ((i + 1) % 2) {
-				if ((k + 1) % 2) {
-					if (i <= bot_checkers || i >= top_checkers)
+			if((i + 1) % 2){
+				if((k + 1) % 2){
+					if(i <= bot_checkers || i >= top_checkers)
 						SetCheckers(bot_checkers, top_checkers, add_x, add_y, i, k);
 					desk[i][k].field_col = black;
 					desk[i][k].midLocation.x = (float)(add_x + (CubeSize) / 2);
 					desk[i][k].midLocation.y = (float)(add_y + (CubeSize) / 2);
-				}
-				else
+				}else
 					desk[i][k].field_col = white;
-			}
-			else {
-				if ((k + 1) % 2)
+			}else{
+				if((k + 1) % 2)
 					desk[i][k].field_col = white;
-				else {
-					if (i <= bot_checkers || i >= top_checkers)
+				else{
+					if(i <= bot_checkers || i >= top_checkers)
 						SetCheckers(bot_checkers, top_checkers, add_x, add_y, i, k);
 					desk[i][k].field_col = black;
 					desk[i][k].midLocation.x = (float)(add_x + (CubeSize) / 2);
@@ -355,7 +358,7 @@ void setDesk(void) {
 	}
 }
 
-void setButtons(void) {
+void setButtons(void){
 	int koef = 0, koef2 = 0;
 	const int Distance = 25;
 	koef = CubeSize / 3;
@@ -388,19 +391,18 @@ void setButtons(void) {
 	Records_button.Right_border = Developers_button.Right_border;
 }
 
-void pole(int add_x, int add_y, colors color) {
+void pole(int add_x, int add_y, colors color){
 	glBegin(GL_QUADS);
 
-	if (desk[add_y / CubeSize][add_x / CubeSize].focused.highlighted == false) {
-		if (color == white)
+	if(desk[add_y / CubeSize][add_x / CubeSize].focused.highlighted == false){
+		if(color == white)
 			glColor3ub(230, 230, 230);
 
-		if (color == black)
+		if(color == black)
 			glColor3ub(50, 50, 50);
-	}
-	else
+	}else
 		glColor3ub(255, 140, 0);
-	if (desk[add_y / CubeSize][add_x / CubeSize].focused.toMove == true)
+	if(desk[add_y / CubeSize][add_x / CubeSize].focused.toMove == true)
 		glColor3ub(255, 190, 0);
 
 	glVertex2f(0 + add_x, 0 + add_y);
@@ -411,7 +413,7 @@ void pole(int add_x, int add_y, colors color) {
 	glEnd();
 }
 
-void drawCheckers(int i, int k) {
+void drawCheckers(int i, int k){
 	const int max = 30;
 	int Radius = 35;
 	float a = 0;
@@ -420,13 +422,13 @@ void drawCheckers(int i, int k) {
 
 	//glVertex2f(desk[i][k].midLocation.x, desk[i][k].midLocation.y); // Середина
 
-	if (desk[i][k].checker_side == white)
+	if(desk[i][k].checker_side == white)
 		glColor3ub(230, 230, 230);
 
 	else
 		glColor3ub(178, 34, 34);//glColor3ub(150, 75, 0);
 
-	for (int j = 0; j < max; j++) {
+	for(int j = 0; j < max; j++){
 		a = (float)j / (float)max * 3.1415 * 2.0;
 
 		glVertex2f(desk[i][k].midLocation.x + cosf(a) * (float)Radius,
@@ -439,7 +441,7 @@ void drawCheckers(int i, int k) {
 
 	glBegin(GL_POLYGON);
 
-	for (int j = 0; j < max; j++) {
+	for(int j = 0; j < max; j++){
 		a = (float)j / (float)max * 3.1415 * 2.0;
 
 		glVertex2f(desk[i][k].midLocation.x + cosf(a) * (float)Radius,
@@ -448,7 +450,7 @@ void drawCheckers(int i, int k) {
 
 	glEnd();
 	//desk[0][0].role = queen;
-	if (desk[i][k].role == queen) {
+	if(desk[i][k].role == queen){
 		const int left_right = 17, up_point = 15, down_point = 10;
 
 		glBegin(GL_TRIANGLES);
@@ -470,10 +472,10 @@ void drawCheckers(int i, int k) {
 	}
 }
 
-void drawButtons(void) {
+void drawButtons(void){
 	glBegin(GL_QUADS);
 
-	if (Restart_button.Color == 0)
+	if(Restart_button.Color == 0)
 		glColor3ub(189, 183, 107);
 	else
 		glColor3ub(165, 42, 42);
@@ -482,7 +484,7 @@ void drawButtons(void) {
 	glVertex2f(Restart_button.Right_border, Restart_button.Up_border);
 	glVertex2f(Restart_button.Right_border, Restart_button.Down_border);
 
-	if (Save_Position_button.Color == 0)
+	if(Save_Position_button.Color == 0)
 		glColor3ub(189, 183, 107);
 	else
 		glColor3ub(165, 42, 42);
@@ -491,7 +493,7 @@ void drawButtons(void) {
 	glVertex2f(Save_Position_button.Right_border, Save_Position_button.Up_border);
 	glVertex2f(Save_Position_button.Right_border, Save_Position_button.Down_border);
 
-	if (Recover_Position_button.Color == 0)
+	if(Recover_Position_button.Color == 0)
 		glColor3ub(189, 183, 107);
 	else
 		glColor3ub(165, 42, 42);
@@ -503,9 +505,9 @@ void drawButtons(void) {
 	glEnd();
 }
 
-void drawButtonsMenu(void) {
+void drawButtonsMenu(void){
 	glBegin(GL_QUADS);
-	if (Developers_button.Color == 0) // glClearColor(0.7, 0.5, 0.2, 1);
+	if(Developers_button.Color == 0) // glClearColor(0.7, 0.5, 0.2, 1);
 		glColor3ub(189, 183, 107);
 	else
 		glColor3ub(165, 42, 42);
@@ -514,7 +516,7 @@ void drawButtonsMenu(void) {
 	glVertex2f(Developers_button.Right_border, Developers_button.Up_border);
 	glVertex2f(Developers_button.Right_border, Developers_button.Down_border);
 
-	if (Records_button.Color == 0)
+	if(Records_button.Color == 0)
 		glColor3ub(189, 183, 107);
 	else
 		glColor3ub(165, 42, 42);
@@ -525,7 +527,7 @@ void drawButtonsMenu(void) {
 	glEnd();
 }
 
-void drawTextOnButtonsGame(void) {
+void drawTextOnButtonsGame(void){
 	const float koef = 0.4;
 	int PosX = 0, PosY = 0;
 	float AddY = 0;
@@ -546,7 +548,7 @@ void drawTextOnButtonsGame(void) {
 	drawText("RESTORE", PosX, PosY);
 }
 
-void drawTextOnButtonsMenu(void) {
+void drawTextOnButtonsMenu(void){
 	const float koef = 0.4;
 	int PosX = 0, PosY = 0;
 	float AddY = 0;
@@ -564,7 +566,7 @@ void drawTextOnButtonsMenu(void) {
 	drawText("F1 TO RETURN", 100, 50);
 }
 
-void drawTextDevelopers(void) {
+void drawTextDevelopers(void){
 	const int Distance = 30;
 	float MidHeight = Height / 2 + 100;
 	float MidWid = Width / 2;
@@ -580,16 +582,16 @@ void drawTextDevelopers(void) {
 	drawText("F1 TO QUIT", 100, 50);
 }
 
-void drawTextRecords(void) {
-	if (head != NULL && head->Moves) {
+void drawTextRecords(void){
+	if(head != NULL && head->Moves){
 		int i = 1, count = 0;
 		records* tmp = head;
-		char string[BIG_STRING_NAME] = { 0 }; // Будет строка для записи
+		char string[BIG_STRING_NAME] = {0}; // Будет строка для записи
 		const int Distance = 30;
 		float MidHeight = Height / 2 + 200;
 		float MidWid = Width / 2;
 
-		while (tmp != NULL && count <= 10) {
+		while(tmp != NULL && count <= 10){
 			GetStringOutOfList(tmp, string, i);
 			drawText(string, MidWid, MidHeight);
 			tmp = tmp->next;
@@ -602,7 +604,7 @@ void drawTextRecords(void) {
 	drawText("F1 TO QUIT", 100, 50);
 }
 
-void drawMenu(void) {
+void drawMenu(void){
 	float MidHeight = Height / 2;
 	float MidWid = Width / 2;
 	float AddHalfX = Width / 2;
@@ -622,7 +624,7 @@ void drawMenu(void) {
 	drawTextOnButtonsMenu();
 }
 
-void drawEndGame(void) {
+void drawEndGame(void){
 	float MidH = Height / 2;
 	float MidW = Width / 2;
 	const float AddX = 200, AddY = 300, lowAdd = 20;
@@ -640,7 +642,7 @@ void drawEndGame(void) {
 	drawText("F1 TO QUIT", MidW, MidH - AddY + lowAdd);
 }
 
-void drawEndGameLoose(void) {
+void drawEndGameLoose(void){
 	float MidH = Height / 2;
 	float MidW = Width / 2;
 	const float AddX = 200, AddY = 300;
@@ -656,8 +658,8 @@ void drawEndGameLoose(void) {
 	drawText("YOU'VE LOST, TRY AGAIN", MidW, MidH);
 }
 
-void Display(void) {
-	if (Status == GAME || Status == AFTER_GAME || Status == AFTER_GAME_LOOSE) {
+void Display(void){
+	if(Status == GAME || Status == AFTER_GAME || Status == AFTER_GAME_LOOSE){
 		int add_x = 0, i = 0, k = 0, add_y = 0;
 		colors color = 0;
 		// Устанавливаем цвет фона
@@ -665,8 +667,8 @@ void Display(void) {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// Отрисовка доски
-		for (i = 0; i < DESK_SIZE; i++) {
-			for (k = 0; k < DESK_SIZE; k++) {
+		for(i = 0; i < DESK_SIZE; i++){
+			for(k = 0; k < DESK_SIZE; k++){
 				add_y = CubeSize * i;
 				add_x = CubeSize * k;
 				color = desk[i][k].field_col;
@@ -674,9 +676,9 @@ void Display(void) {
 			}
 		}
 		// Заполнение шашками
-		for (i = 0; i < DESK_SIZE; i++) {
-			for (k = 0; k < DESK_SIZE; k++) {
-				if (desk[i][k].field == occup)
+		for(i = 0; i < DESK_SIZE; i++){
+			for(k = 0; k < DESK_SIZE; k++){
+				if(desk[i][k].field == occup)
 					drawCheckers(i, k);
 			}
 		}
@@ -685,16 +687,15 @@ void Display(void) {
 		drawTextOnButtonsGame();
 		drawText("F1 TO OPEN MENU", (int)(CubeSize * DESK_SIZE + CubeSize * 1.3), CubeSize * 2);
 
-		if (Status == AFTER_GAME) {
+		if(Status == AFTER_GAME){
 			drawEndGame();
-		}
-		else if (Status == AFTER_GAME_LOOSE) {
+		}else if(Status == AFTER_GAME_LOOSE){
 			drawEndGameLoose();
 		}
 
 		glFinish();
 
-		if (Status == AFTER_GAME_LOOSE) {
+		if(Status == AFTER_GAME_LOOSE){
 #ifdef WINDOWS
 			Sleep(2000);
 #endif
@@ -704,24 +705,21 @@ void Display(void) {
 #endif
 			Status = GAME;
 		}
-	}
-	else if (Status == MENU) {
+	}else if(Status == MENU){
 		glClearColor(0.7, 0.5, 0.2, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		drawMenu();
 
 		glFinish();
-	}
-	else if (Status == DEVELOPERS) {
+	}else if(Status == DEVELOPERS){
 		glClearColor(0.7, 0.5, 0.2, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		drawTextDevelopers();
 
 		glFinish();
-	}
-	else if (Status == SRECORDS) {
+	}else if(Status == SRECORDS){
 		glClearColor(0.7, 0.5, 0.2, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
@@ -731,7 +729,7 @@ void Display(void) {
 	}
 }
 
-void Reshape(GLint w, GLint h) {
+void Reshape(GLint w, GLint h){
 	Width = w;
 	Height = h;
 
@@ -747,154 +745,143 @@ void Reshape(GLint w, GLint h) {
 	glLoadIdentity();
 }
 
-int EatUp(int xx, int yy, colors side_of_eaten, int* EatOrNot, Pressed* EatenOne) {
+int EatUp(int xx, int yy, colors side_of_eaten, int* EatOrNot, Pressed* EatenOne){
 	const int SUCCESS = 1, FAILURE = 0;
-	if ((Move_from.press_x + 2 == xx) && \
-		desk[Move_from.press_y + 1][Move_from.press_x + 1].field == occup && \
-		desk[Move_from.press_y + 1][Move_from.press_x + 1].checker_side == side_of_eaten) {
+	if((Move_from.press_x + 2 == xx) && \
+        desk[Move_from.press_y + 1][Move_from.press_x + 1].field == occup && \
+        desk[Move_from.press_y + 1][Move_from.press_x + 1].checker_side == side_of_eaten){
 		*EatOrNot = EAT;
 		EatenOne->press_x = Move_from.press_x + 1;
 		EatenOne->press_y = Move_from.press_y + 1;
 		return SUCCESS;
-	}
-	else if ((Move_from.press_x - 2 == xx) && \
-		desk[Move_from.press_y + 1][Move_from.press_x - 1].field == occup && \
-		desk[Move_from.press_y + 1][Move_from.press_x - 1].checker_side == side_of_eaten) {
+	}else if((Move_from.press_x - 2 == xx) && \
+        desk[Move_from.press_y + 1][Move_from.press_x - 1].field == occup && \
+        desk[Move_from.press_y + 1][Move_from.press_x - 1].checker_side == side_of_eaten){
 		*EatOrNot = EAT;
 		EatenOne->press_x = Move_from.press_x - 1;
 		EatenOne->press_y = Move_from.press_y + 1;
 		return SUCCESS;
-	}
-	else
+	}else
 		return FAILURE;
 }
 
-int EatDown(int xx, int yy, colors side_of_eaten, int* EatOrNot, Pressed* EatenOne) {
+int EatDown(int xx, int yy, colors side_of_eaten, int* EatOrNot, Pressed* EatenOne){
 	const int SUCCESS = 1, FAILURE = 0;
-	if ((Move_from.press_x + 2 == xx) && \
-		desk[Move_from.press_y - 1][Move_from.press_x + 1].field == occup && \
-		desk[Move_from.press_y - 1][Move_from.press_x + 1].checker_side == side_of_eaten) {
+	if((Move_from.press_x + 2 == xx) && \
+        desk[Move_from.press_y - 1][Move_from.press_x + 1].field == occup && \
+        desk[Move_from.press_y - 1][Move_from.press_x + 1].checker_side == side_of_eaten){
 		*EatOrNot = EAT;
 		EatenOne->press_x = Move_from.press_x + 1;
 		EatenOne->press_y = Move_from.press_y - 1;
 		return SUCCESS;
-	}
-	else if ((Move_from.press_x - 2 == xx) && \
-		desk[Move_from.press_y - 1][Move_from.press_x - 1].field == occup && \
-		desk[Move_from.press_y - 1][Move_from.press_x - 1].checker_side == side_of_eaten) {
+	}else if((Move_from.press_x - 2 == xx) && \
+        desk[Move_from.press_y - 1][Move_from.press_x - 1].field == occup && \
+        desk[Move_from.press_y - 1][Move_from.press_x - 1].checker_side == side_of_eaten){
 		*EatOrNot = EAT;
 		EatenOne->press_x = Move_from.press_x - 1;
 		EatenOne->press_y = Move_from.press_y - 1;
 		return SUCCESS;
-	}
-	else
+	}else
 		return FAILURE;
 }
 
-int Sub_for_Possible_for_queen(int xx, int yy, int i, int j, int* EnemyOnWay, int* EatOrNot, Pressed* EatenOne) {
+int Sub_for_Possible_for_queen(int xx, int yy, int i, int j, int* EnemyOnWay, int* EatOrNot, Pressed* EatenOne){
 	const int SUCCESS = 1, FAILURE = 0, WAIT = 2;
-	if (desk[i][j].field == occup && desk[i][j].checker_side != turn) {
+	if(desk[i][j].field == occup && desk[i][j].checker_side != turn){
 		(*EnemyOnWay)++;
-		if ((*EnemyOnWay) == 1) {
+		if((*EnemyOnWay) == 1){
 			EatenOne->press_x = j;
 			EatenOne->press_y = i;
 		}
 	}
-	if (desk[i][j].field == occup && desk[i][j].checker_side == turn)
+	if(desk[i][j].field == occup && desk[i][j].checker_side == turn)
 		return FAILURE;
 
-	if (i == yy && xx == j) {
-		if (!(*EnemyOnWay)) {
+	if(i == yy && xx == j){
+		if(!(*EnemyOnWay)){
 			*EatOrNot = NO_EAT;
 			return SUCCESS;
 		}
-		if ((*EnemyOnWay) == 1) {
+		if((*EnemyOnWay) == 1){
 			*EatOrNot = EAT;
 			return SUCCESS;
-		}
-		else
+		}else
 			return FAILURE;
 	}
 	return WAIT;
 }
 
-int Possible(int xx, int yy, int* EatOrNot, Pressed* EatenOne) {
+int Possible(int xx, int yy, int* EatOrNot, Pressed* EatenOne){
 	// Move_from
 	// xx && yy - координата поля, куда будет совершен ход
 	// Координата откуда будет совершен ход в структуре move_from
 	const int SUCCESS = 1, FAILURE = 0;
 	colors side_of_eaten;
 
-	if (desk[Move_from.press_y][Move_from.press_x].checker_side == white)
+	if(desk[Move_from.press_y][Move_from.press_x].checker_side == white)
 		side_of_eaten = black;
 	else
 		side_of_eaten = white;
 
-	if (desk[yy][xx].field_col == white || desk[yy][xx].field == occup)
+	if(desk[yy][xx].field_col == white || desk[yy][xx].field == occup)
 		return FAILURE;
 
-	if (desk[Move_from.press_y][Move_from.press_x].role == soldier) {
-		if (desk[Move_from.press_y][Move_from.press_x].checker_side == white) {
+	if(desk[Move_from.press_y][Move_from.press_x].role == soldier){
+		if(desk[Move_from.press_y][Move_from.press_x].checker_side == white){
 			// Ход без битья
-			if ((Move_from.press_y + 1 == yy) && ((Move_from.press_x + 1 == xx) || (Move_from.press_x - 1 == xx)))
+			if((Move_from.press_y + 1 == yy) && ((Move_from.press_x + 1 == xx) || (Move_from.press_x - 1 == xx)))
 				return SUCCESS;
-		}
-		else {
-			if ((Move_from.press_y - 1 == yy) && ((Move_from.press_x + 1 == xx) || (Move_from.press_x - 1 == xx)))
+		}else{
+			if((Move_from.press_y - 1 == yy) && ((Move_from.press_x + 1 == xx) || (Move_from.press_x - 1 == xx)))
 				return SUCCESS;
 		}
 		// Ход со съеданием
-		if (Move_from.press_y + 2 == yy) {
+		if(Move_from.press_y + 2 == yy){
 			return EatUp(xx, yy, side_of_eaten, EatOrNot, EatenOne);
-		}
-		else if (Move_from.press_y - 2 == yy) {
+		}else if(Move_from.press_y - 2 == yy){
 			return EatDown(xx, yy, side_of_eaten, EatOrNot, EatenOne);
-		}
-		else
+		}else
 			return FAILURE;
 	}
 		// Просчет для дамки
-	else if (desk[Move_from.press_y][Move_from.press_x].role == queen) {
+	else if(desk[Move_from.press_y][Move_from.press_x].role == queen){
 		int i = 0, j = 0, EnemyOnWay = 0, SUB = 0;
 		i = Move_from.press_y;
 		j = Move_from.press_x;
-		if (Move_from.press_x > xx && Move_from.press_y > yy) {
+		if(Move_from.press_x > xx && Move_from.press_y > yy){
 			EnemyOnWay = 0;
-			for (i = Move_from.press_y - 1, j = Move_from.press_x - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j--) {
+			for(i = Move_from.press_y - 1, j = Move_from.press_x - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j--){
 				SUB = Sub_for_Possible_for_queen(xx, yy, i, j, &EnemyOnWay, EatOrNot, EatenOne);
-				if (SUB == FAILURE)
+				if(SUB == FAILURE)
 					return FAILURE;
-				if (SUB == SUCCESS)
+				if(SUB == SUCCESS)
 					return SUCCESS;
 			}
-		}
-		else if (Move_from.press_x > xx && Move_from.press_y < yy) {
+		}else if(Move_from.press_x > xx && Move_from.press_y < yy){
 			EnemyOnWay = 0;
-			for (i = Move_from.press_y + 1, j = Move_from.press_x - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j--) {
+			for(i = Move_from.press_y + 1, j = Move_from.press_x - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j--){
 				SUB = Sub_for_Possible_for_queen(xx, yy, i, j, &EnemyOnWay, EatOrNot, EatenOne);
-				if (SUB == FAILURE)
+				if(SUB == FAILURE)
 					return FAILURE;
-				if (SUB == SUCCESS)
+				if(SUB == SUCCESS)
 					return SUCCESS;
 			}
-		}
-		else if (Move_from.press_x < xx && Move_from.press_y > yy) {
+		}else if(Move_from.press_x < xx && Move_from.press_y > yy){
 			EnemyOnWay = 0;
-			for (i = Move_from.press_y - 1, j = Move_from.press_x + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j++) {
+			for(i = Move_from.press_y - 1, j = Move_from.press_x + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j++){
 				SUB = Sub_for_Possible_for_queen(xx, yy, i, j, &EnemyOnWay, EatOrNot, EatenOne);
-				if (SUB == FAILURE)
+				if(SUB == FAILURE)
 					return FAILURE;
-				if (SUB == SUCCESS)
+				if(SUB == SUCCESS)
 					return SUCCESS;
 			}
-		}
-		else if (Move_from.press_x < xx && Move_from.press_y < yy) {
+		}else if(Move_from.press_x < xx && Move_from.press_y < yy){
 			EnemyOnWay = 0;
-			for (i = Move_from.press_y + 1, j = Move_from.press_x + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j++) {
+			for(i = Move_from.press_y + 1, j = Move_from.press_x + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j++){
 				SUB = Sub_for_Possible_for_queen(xx, yy, i, j, &EnemyOnWay, EatOrNot, EatenOne);
-				if (SUB == FAILURE)
+				if(SUB == FAILURE)
 					return FAILURE;
-				if (SUB == SUCCESS)
+				if(SUB == SUCCESS)
 					return SUCCESS;
 			}
 		}
@@ -902,7 +889,7 @@ int Possible(int xx, int yy, int* EatOrNot, Pressed* EatenOne) {
 	return SUCCESS;
 }
 
-void MoveChecker(const int EatOrNot, Pressed EatenOne) {
+void MoveChecker(const int EatOrNot, Pressed EatenOne){
 	Move_to.press_x = cur_cursor_x;
 	Move_to.press_y = cur_cursor_y;
 	desk[Move_from.press_y][Move_from.press_x].field = empty;
@@ -913,14 +900,14 @@ void MoveChecker(const int EatOrNot, Pressed EatenOne) {
 	desk[Move_to.press_y][Move_to.press_x].role = desk[Move_from.press_y][Move_from.press_x].role;
 	space_pressed = false;
 
-	if (EatOrNot == EAT) {
+	if(EatOrNot == EAT){
 		desk[EatenOne.press_y][EatenOne.press_x].field = empty;
 	}
 
 	WasMoved = true;
 }
 
-void AIMoveChecker(const int y, const int x, const int EatOrNot, Pressed EatenOne) {
+void AIMoveChecker(const int y, const int x, const int EatOrNot, Pressed EatenOne){
 	Move_to.press_x = x;
 	Move_to.press_y = y;
 	desk[Move_from.press_y][Move_from.press_x].field = empty;
@@ -931,144 +918,144 @@ void AIMoveChecker(const int y, const int x, const int EatOrNot, Pressed EatenOn
 	desk[Move_to.press_y][Move_to.press_x].role = desk[Move_from.press_y][Move_from.press_x].role;
 	space_pressed = false;
 
-	if (EatOrNot == EAT) {
+	if(EatOrNot == EAT){
 		desk[EatenOne.press_y][EatenOne.press_x].field = empty;
 	}
 
 	WasMoved = true;
 }
 
-void PressedToMove(void) {
+void PressedToMove(void){
 	space_pressed = true;
 	Move_from.press_x = cur_cursor_x;
 	Move_from.press_y = cur_cursor_y;
 	desk[Move_from.press_y][Move_from.press_x].focused.toMove = true;
 }
 
-int PossibilityToEatUp(const int yy, const int xx) {
+int PossibilityToEatUp(const int yy, const int xx){
 	const int POSSIBLE = 1, NOT_POSSIBLE = 0;
-	if (xx + 2 <= DESK_SIZE - 1 && yy + 2 <= DESK_SIZE - 1) {
-		if ((desk[yy + 2][xx + 2].field == empty) && \
-			desk[yy + 1][xx + 1].field == occup && \
-			desk[yy + 1][xx + 1].checker_side != turn)
+	if(xx + 2 <= DESK_SIZE - 1 && yy + 2 <= DESK_SIZE - 1){
+		if((desk[yy + 2][xx + 2].field == empty) && \
+            desk[yy + 1][xx + 1].field == occup && \
+            desk[yy + 1][xx + 1].checker_side != turn)
 			return POSSIBLE;
 	}
-	if (xx - 2 >= 0 && yy + 2 <= DESK_SIZE - 1) {
-		if ((desk[yy + 2][xx - 2].field == empty) && \
-			desk[yy + 1][xx - 1].field == occup && \
-			desk[yy + 1][xx - 1].checker_side != turn)
+	if(xx - 2 >= 0 && yy + 2 <= DESK_SIZE - 1){
+		if((desk[yy + 2][xx - 2].field == empty) && \
+            desk[yy + 1][xx - 1].field == occup && \
+            desk[yy + 1][xx - 1].checker_side != turn)
 			return POSSIBLE;
 	}
 	return NOT_POSSIBLE;
 }
 
-int AIPossibilityToEatUp(const int yy, const int xx) {
-	if (xx + 2 <= DESK_SIZE - 1 && yy + 2 <= DESK_SIZE - 1) {
-		if ((desk[yy + 2][xx + 2].field == empty) && \
-			desk[yy + 1][xx + 1].field == occup && \
-			desk[yy + 1][xx + 1].checker_side != turn)
+int AIPossibilityToEatUp(const int yy, const int xx){
+	if(xx + 2 <= DESK_SIZE - 1 && yy + 2 <= DESK_SIZE - 1){
+		if((desk[yy + 2][xx + 2].field == empty) && \
+            desk[yy + 1][xx + 1].field == occup && \
+            desk[yy + 1][xx + 1].checker_side != turn)
 			return UR;
 	}
-	if (xx - 2 >= 0 && yy + 2 <= DESK_SIZE - 1) {
-		if ((desk[yy + 2][xx - 2].field == empty) && \
-			desk[yy + 1][xx - 1].field == occup && \
-			desk[yy + 1][xx - 1].checker_side != turn)
+	if(xx - 2 >= 0 && yy + 2 <= DESK_SIZE - 1){
+		if((desk[yy + 2][xx - 2].field == empty) && \
+            desk[yy + 1][xx - 1].field == occup && \
+            desk[yy + 1][xx - 1].checker_side != turn)
 			return UL;
 	}
 	return IMP;
 }
 
-int PossibilityToEatDown(const int yy, const int xx) {
+int PossibilityToEatDown(const int yy, const int xx){
 	const int POSSIBLE = 1, NOT_POSSIBLE = 0;
-	if (xx + 2 <= DESK_SIZE - 1 && yy - 2 >= 0) {
-		if ((desk[yy - 2][xx + 2].field == empty) && \
-			desk[yy - 1][xx + 1].field == occup && \
-			desk[yy - 1][xx + 1].checker_side != turn)
+	if(xx + 2 <= DESK_SIZE - 1 && yy - 2 >= 0){
+		if((desk[yy - 2][xx + 2].field == empty) && \
+            desk[yy - 1][xx + 1].field == occup && \
+            desk[yy - 1][xx + 1].checker_side != turn)
 			return POSSIBLE;
 	}
-	if (xx - 2 >= 0 && yy - 2 >= 0) {
-		if ((desk[yy - 2][xx - 2].field == empty) && \
-			desk[yy - 1][xx - 1].field == occup && \
-			desk[yy - 1][xx - 1].checker_side != turn)
+	if(xx - 2 >= 0 && yy - 2 >= 0){
+		if((desk[yy - 2][xx - 2].field == empty) && \
+            desk[yy - 1][xx - 1].field == occup && \
+            desk[yy - 1][xx - 1].checker_side != turn)
 			return POSSIBLE;
 	}
 	return NOT_POSSIBLE;
 }
 
-int AIPossibilityToEatDown(const int yy, const int xx) {
+int AIPossibilityToEatDown(const int yy, const int xx){
 
-	if (xx + 2 <= DESK_SIZE - 1 && yy - 2 >= 0) {
-		if ((desk[yy - 2][xx + 2].field == empty) && \
-			desk[yy - 1][xx + 1].field == occup && \
-			desk[yy - 1][xx + 1].checker_side != turn)
+	if(xx + 2 <= DESK_SIZE - 1 && yy - 2 >= 0){
+		if((desk[yy - 2][xx + 2].field == empty) && \
+            desk[yy - 1][xx + 1].field == occup && \
+            desk[yy - 1][xx + 1].checker_side != turn)
 			return DR;
 	}
-	if (xx - 2 >= 0 && yy - 2 >= 0) {
-		if ((desk[yy - 2][xx - 2].field == empty) && \
-			desk[yy - 1][xx - 1].field == occup && \
-			desk[yy - 1][xx - 1].checker_side != turn)
+	if(xx - 2 >= 0 && yy - 2 >= 0){
+		if((desk[yy - 2][xx - 2].field == empty) && \
+            desk[yy - 1][xx - 1].field == occup && \
+            desk[yy - 1][xx - 1].checker_side != turn)
 			return DL;
 	}
 	return IMP;
 }
 
-int PossibilityToEatByQueen(const int yy, const int xx) {
+int PossibilityToEatByQueen(const int yy, const int xx){
 	const int POSSIBLE = 1, NOT_POSSIBLE = 0;
 	int EnemyOnWay = 0;
 	int i = 0, j = 0;
 
-	for (i = yy + 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j--) {
-		if (desk[i][j].field == occup) {
-			if (desk[i][j].checker_side != turn) {
+	for(i = yy + 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j--){
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
 				EnemyOnWay++;
-				if (EnemyOnWay > 1)
+				if(EnemyOnWay > 1)
 					break;
 			}
-			if (desk[i][j].checker_side == turn)
+			if(desk[i][j].checker_side == turn)
 				break;
-			else if ((j - 1) >= 0 && (i + 1) < DESK_SIZE && desk[i + 1][j - 1].field == empty)
+			else if((j - 1) >= 0 && (i + 1) < DESK_SIZE && desk[i + 1][j - 1].field == empty)
 				return POSSIBLE;
 		}
 	}
 	EnemyOnWay = 0;
-	for (i = yy + 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j++) {
-		if (desk[i][j].field == occup) {
-			if (desk[i][j].checker_side != turn) {
+	for(i = yy + 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j++){
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
 				EnemyOnWay++;
-				if (EnemyOnWay > 1)
+				if(EnemyOnWay > 1)
 					break;
 			}
-			if (desk[i][j].checker_side == turn)
+			if(desk[i][j].checker_side == turn)
 				break;
-			else if ((j + 1) < DESK_SIZE && (i + 1) < DESK_SIZE && desk[i + 1][j + 1].field == empty)
+			else if((j + 1) < DESK_SIZE && (i + 1) < DESK_SIZE && desk[i + 1][j + 1].field == empty)
 				return POSSIBLE;
 		}
 	}
 	EnemyOnWay = 0;
-	for (i = yy - 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j--) {
-		if (desk[i][j].field == occup) {
-			if (desk[i][j].checker_side != turn) {
+	for(i = yy - 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j--){
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
 				EnemyOnWay++;
-				if (EnemyOnWay > 1)
+				if(EnemyOnWay > 1)
 					break;
 			}
-			if (desk[i][j].checker_side == turn)
+			if(desk[i][j].checker_side == turn)
 				break;
-			else if ((j - 1) >= 0 && (i - 1) >= 0 && desk[i - 1][j - 1].field == empty)
+			else if((j - 1) >= 0 && (i - 1) >= 0 && desk[i - 1][j - 1].field == empty)
 				return POSSIBLE;
 		}
 	}
 	EnemyOnWay = 0;
-	for (i = yy - 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j++) {
-		if (desk[i][j].field == occup) {
-			if (desk[i][j].checker_side != turn) {
+	for(i = yy - 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j++){
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
 				EnemyOnWay++;
-				if (EnemyOnWay > 1)
+				if(EnemyOnWay > 1)
 					break;
 			}
-			if (desk[i][j].checker_side == turn)
+			if(desk[i][j].checker_side == turn)
 				break;
-			else if ((j + 1) < DESK_SIZE && (i - 1) >= 0 && desk[i - 1][j + 1].field == empty)
+			else if((j + 1) < DESK_SIZE && (i - 1) >= 0 && desk[i - 1][j + 1].field == empty)
 				return POSSIBLE;
 		}
 	}
@@ -1076,23 +1063,23 @@ int PossibilityToEatByQueen(const int yy, const int xx) {
 	return NOT_POSSIBLE;
 }
 
-int AIPossibilityToEatByQueen(const int yy, const int xx, int* y, int* x, int* direction) {
+int AIPossibilityToEatByQueen(const int yy, const int xx, int* y, int* x, int* direction){
 	//yy & xx - pos of Q, y & x - pos of Q after move
 	const int POSSIBLE = 1, NOT_POSSIBLE = 0;
 	int EnemyOnWay = 0;
 	int i = 0, j = 0;
 	*y = -100;
 	*x = -100;
-	for (i = yy + 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j--) {//UL
-		if (desk[i][j].field == occup) {
-			if (desk[i][j].checker_side != turn) {
+	for(i = yy + 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j--){//UL
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
 				EnemyOnWay++;
-				if (EnemyOnWay > 1)
+				if(EnemyOnWay > 1)
 					break;
 			}
-			if (desk[i][j].checker_side == turn)
+			if(desk[i][j].checker_side == turn)
 				break;
-			else if ((j - 1) >= 0 && (i + 1) < DESK_SIZE && desk[i + 1][j - 1].field == empty) {
+			else if((j - 1) >= 0 && (i + 1) < DESK_SIZE && desk[i + 1][j - 1].field == empty){
 				*direction = UL;
 				*y = i + 1;
 				*x = j - 1;
@@ -1101,16 +1088,16 @@ int AIPossibilityToEatByQueen(const int yy, const int xx, int* y, int* x, int* d
 		}
 	}
 	EnemyOnWay = 0;
-	for (i = yy + 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j++) {//UR
-		if (desk[i][j].field == occup) {
-			if (desk[i][j].checker_side != turn) {
+	for(i = yy + 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j++){//UR
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
 				EnemyOnWay++;
-				if (EnemyOnWay > 1)
+				if(EnemyOnWay > 1)
 					break;
 			}
-			if (desk[i][j].checker_side == turn)
+			if(desk[i][j].checker_side == turn)
 				break;
-			else if ((j + 1) < DESK_SIZE && (i + 1) < DESK_SIZE && desk[i + 1][j + 1].field == empty) {
+			else if((j + 1) < DESK_SIZE && (i + 1) < DESK_SIZE && desk[i + 1][j + 1].field == empty){
 				*direction = UR;
 				*y = i + 1;
 				*x = j + 1;
@@ -1119,16 +1106,16 @@ int AIPossibilityToEatByQueen(const int yy, const int xx, int* y, int* x, int* d
 		}
 	}
 	EnemyOnWay = 0;
-	for (i = yy - 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j--) {//DL
-		if (desk[i][j].field == occup) {
-			if (desk[i][j].checker_side != turn) {
+	for(i = yy - 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j--){//DL
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
 				EnemyOnWay++;
-				if (EnemyOnWay > 1)
+				if(EnemyOnWay > 1)
 					break;
 			}
-			if (desk[i][j].checker_side == turn)
+			if(desk[i][j].checker_side == turn)
 				break;
-			else if ((j - 1) >= 0 && (i - 1) >= 0 && desk[i - 1][j - 1].field == empty) {
+			else if((j - 1) >= 0 && (i - 1) >= 0 && desk[i - 1][j - 1].field == empty){
 				*direction = DL;
 				*y = i - 1;
 				*x = j - 1;
@@ -1137,16 +1124,16 @@ int AIPossibilityToEatByQueen(const int yy, const int xx, int* y, int* x, int* d
 		}
 	}
 	EnemyOnWay = 0;
-	for (i = yy - 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j++) {//DR
-		if (desk[i][j].field == occup) {
-			if (desk[i][j].checker_side != turn) {
+	for(i = yy - 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j++){//DR
+		if(desk[i][j].field == occup){
+			if(desk[i][j].checker_side != turn){
 				EnemyOnWay++;
-				if (EnemyOnWay > 1)
+				if(EnemyOnWay > 1)
 					break;
 			}
-			if (desk[i][j].checker_side == turn)
+			if(desk[i][j].checker_side == turn)
 				break;
-			else if ((j + 1) < DESK_SIZE && (i - 1) >= 0 && desk[i - 1][j + 1].field == empty) {
+			else if((j + 1) < DESK_SIZE && (i - 1) >= 0 && desk[i - 1][j + 1].field == empty){
 				*direction = DR;
 				*y = i - 1;
 				*x = j + 1;
@@ -1158,19 +1145,18 @@ int AIPossibilityToEatByQueen(const int yy, const int xx, int* y, int* x, int* d
 	return NOT_POSSIBLE;
 }
 
-int PossibleToEat(void) {
+int PossibleToEat(void){
 	// turn - чей ход, глобальная переменная
 	int i = 0, j = 0;
 	const int POSSIBLE = 1, NOT_POSSIBLE = 0;
 
-	for (i = 0; i < DESK_SIZE; i++) {
-		for (j = 0; j < DESK_SIZE; j++) {
-			if (desk[i][j].field == occup && desk[i][j].checker_side == turn && desk[i][j].role == soldier) {
-				if (PossibilityToEatDown(i, j) || PossibilityToEatUp(i, j))
+	for(i = 0; i < DESK_SIZE; i++){
+		for(j = 0; j < DESK_SIZE; j++){
+			if(desk[i][j].field == occup && desk[i][j].checker_side == turn && desk[i][j].role == soldier){
+				if(PossibilityToEatDown(i, j) || PossibilityToEatUp(i, j))
 					return POSSIBLE;
-			}
-			else if (desk[i][j].field == occup && desk[i][j].checker_side == turn && desk[i][j].role == queen) {
-				if (PossibilityToEatByQueen(i, j))
+			}else if(desk[i][j].field == occup && desk[i][j].checker_side == turn && desk[i][j].role == queen){
+				if(PossibilityToEatByQueen(i, j))
 					return POSSIBLE;
 			}
 		}
@@ -1178,35 +1164,33 @@ int PossibleToEat(void) {
 	return NOT_POSSIBLE;
 }
 
-int PossibleToGoUpOrDown(void) {
+int PossibleToGoUpOrDown(void){
 	const int POSSIBLE = 1, NOT_POSSIBLE = 0;
-	for (int i = 0; i < DESK_SIZE; i++) {
-		for (int j = 0; j < DESK_SIZE; j++) {
-			if (desk[i][j].field == occup && desk[i][j].checker_side == turn && desk[i][j].role == soldier) {// простой ход шашкой вперед
-				if (desk[i][j].checker_side == white) {
-					if (i + 1 < DESK_SIZE && j - 1 >= 0 && desk[i + 1][j - 1].field == empty)
+	for(int i = 0; i < DESK_SIZE; i++){
+		for(int j = 0; j < DESK_SIZE; j++){
+			if(desk[i][j].field == occup && desk[i][j].checker_side == turn && desk[i][j].role == soldier){// простой ход шашкой вперед
+				if(desk[i][j].checker_side == white){
+					if(i + 1 < DESK_SIZE && j - 1 >= 0 && desk[i + 1][j - 1].field == empty)
 						return POSSIBLE;
-					if (i + 1 < DESK_SIZE && j + 1 < DESK_SIZE && desk[i + 1][j + 1].field == empty)
+					if(i + 1 < DESK_SIZE && j + 1 < DESK_SIZE && desk[i + 1][j + 1].field == empty)
+						return POSSIBLE;
+				}else{
+					if(i - 1 >= 0 && j - 1 >= 0 && desk[i - 1][j - 1].field == empty)
+						return POSSIBLE;
+					if(i - 1 >= 0 && j + 1 < DESK_SIZE && desk[i - 1][j + 1].field == empty)
 						return POSSIBLE;
 				}
-				else {
-					if (i - 1 >= 0 && j - 1 >= 0 && desk[i - 1][j - 1].field == empty)
-						return POSSIBLE;
-					if (i - 1 >= 0 && j + 1 < DESK_SIZE && desk[i - 1][j + 1].field == empty)
-						return POSSIBLE;
-				}
-			}
-			else if (desk[i][j].field == occup && desk[i][j].checker_side == turn && desk[i][j].role == queen) {
-				if (i + 1 < DESK_SIZE && j - 1 >= 0 && desk[i + 1][j - 1].field == empty) {//UL
+			}else if(desk[i][j].field == occup && desk[i][j].checker_side == turn && desk[i][j].role == queen){
+				if(i + 1 < DESK_SIZE && j - 1 >= 0 && desk[i + 1][j - 1].field == empty){//UL
 					return POSSIBLE;
 				}
-				if (j + 1 < DESK_SIZE && i + 1 < DESK_SIZE && desk[i + 1][j + 1].field == empty) {//UR
+				if(j + 1 < DESK_SIZE && i + 1 < DESK_SIZE && desk[i + 1][j + 1].field == empty){//UR
 					return POSSIBLE;
 				}
-				if (i - 1 >= 0 && j - 1 >= 0 && desk[i - 1][j - 1].field == empty) {//DL
+				if(i - 1 >= 0 && j - 1 >= 0 && desk[i - 1][j - 1].field == empty){//DL
 					return POSSIBLE;
 				}
-				if (j + 1 < DESK_SIZE && i - 1 >= 0 && desk[i - 1][j + 1].field == empty) {//DR
+				if(j + 1 < DESK_SIZE && i - 1 >= 0 && desk[i - 1][j + 1].field == empty){//DR
 					return POSSIBLE;
 				}
 			}
@@ -1215,56 +1199,54 @@ int PossibleToGoUpOrDown(void) {
 	return NOT_POSSIBLE;
 }
 
-int EndOfMove(int EatOrNot) {
+int EndOfMove(int EatOrNot){
 	// Поскольку ход был совершен -- координаты ходившей шашки в Move_to
 	const int END = 1, NOT_END = 0;
 	int cur_place_y = Move_to.press_y, cur_place_x = Move_to.press_x;
 
-	if (EatOrNot == NO_EAT)
+	if(EatOrNot == NO_EAT)
 		return END;
 
-	if (desk[cur_place_y][cur_place_x].role == soldier) {
-		if (PossibilityToEatUp(cur_place_y, cur_place_x))
+	if(desk[cur_place_y][cur_place_x].role == soldier){
+		if(PossibilityToEatUp(cur_place_y, cur_place_x))
 			return NOT_END;
-		if (PossibilityToEatDown(cur_place_y, cur_place_x))
+		if(PossibilityToEatDown(cur_place_y, cur_place_x))
 			return NOT_END;
-	}
-	else // Если дамка
-	{
-		if (PossibilityToEatByQueen(cur_place_y, cur_place_x))
+	}else{// Если дамка
+		if(PossibilityToEatByQueen(cur_place_y, cur_place_x))
 			return NOT_END;
 	}
 	return END; // Если действительно конец хода
 }
 
-void MakeQueen(void) {
+void MakeQueen(void){
 	desk[Move_to.press_y][Move_to.press_x].role = queen;
 }
 
-int CheckEndEmpty(void) {
+int CheckEndEmpty(void){
 	const int END = 1, CONTINUE = 0;
 	int i = 0, j = 0;
-	for (i = 0; i < DESK_SIZE; i++) {
-		for (j = 0; j < DESK_SIZE; j++) {
-			if (desk[i][j].checker_side != turn && desk[i][j].field == occup)
+	for(i = 0; i < DESK_SIZE; i++){
+		for(j = 0; j < DESK_SIZE; j++){
+			if(desk[i][j].checker_side != turn && desk[i][j].field == occup)
 				return CONTINUE;
 		}
 	}
 	return END;
 }
 
-int CheckEndNoMove(void) {
+int CheckEndNoMove(void){
 	const int END = 1, CONTINUE = 0;
 
-	if (PossibleToEat() || PossibleToGoUpOrDown())
+	if(PossibleToEat() || PossibleToGoUpOrDown())
 		return CONTINUE;
 
 	return END;
 }
 
-void Enter(void) {
+void Enter(void){
 	desk[Move_to.press_y][Move_to.press_x].focused.toMove = false;
-	if (turn == white)
+	if(turn == white)
 		turn = black;
 	else
 		turn = white;
@@ -1272,26 +1254,25 @@ void Enter(void) {
 	space_pressed = false;
 }
 
-void EatAsMuchAsPossible(const int y, const int x, int role) {
-	if (x < 0 || x >= DESK_SIZE || y < 0 || y >= DESK_SIZE) {
+void EatAsMuchAsPossible(const int y, const int x, int role){
+	if(x < 0 || x >= DESK_SIZE || y < 0 || y >= DESK_SIZE){
 		return;
 	}
 
 	int direction = -1, EatOrNot = NO_EAT;
 
-	if ((direction = AIPossibilityToEatDown(y, x)) ||
-			(direction = AIPossibilityToEatUp(y, x))) {
+	if((direction = AIPossibilityToEatDown(y, x)) ||
+			(direction = AIPossibilityToEatUp(y, x))){
 		EatOrNot = EAT;
-	}
-	else {
+	}else{
 		return;
 	}
 
-	Pressed EatenOne = { 0, 0 };
+	Pressed EatenOne = {0, 0};
 	cur_cursor_x = x;
 	cur_cursor_y = y;
 	PressedToMove();
-	if (direction == DR) {
+	if(direction == DR){
 		EatenOne.press_x = cur_cursor_x + 1;
 		EatenOne.press_y = cur_cursor_y - 1;
 #ifdef WINDOWS
@@ -1302,12 +1283,12 @@ void EatAsMuchAsPossible(const int y, const int x, int role) {
 		sleep(0.7);
 #endif
 		AIMoveChecker(cur_cursor_y - 2, cur_cursor_x + 2, EatOrNot, EatenOne);
-		if (Move_to.press_y == 0 && role != queen)
+		if(Move_to.press_y == 0 && role != queen)
 			MakeQueen();
 		Display();
 		EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x + 2, role);
 	}
-	if (direction == DL) {
+	if(direction == DL){
 		EatenOne.press_x = cur_cursor_x - 1;
 		EatenOne.press_y = cur_cursor_y - 1;
 #ifdef WINDOWS
@@ -1318,12 +1299,12 @@ void EatAsMuchAsPossible(const int y, const int x, int role) {
 		sleep(0.7);
 #endif
 		AIMoveChecker(cur_cursor_y - 2, cur_cursor_x - 2, EatOrNot, EatenOne);
-		if (Move_to.press_y == 0 && role != queen)
+		if(Move_to.press_y == 0 && role != queen)
 			MakeQueen();
 		Display();
 		EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x - 2, role);
 	}
-	if (direction == UR) {
+	if(direction == UR){
 		EatenOne.press_x = cur_cursor_x + 1;
 		EatenOne.press_y = cur_cursor_y + 1;
 #ifdef WINDOWS
@@ -1334,12 +1315,12 @@ void EatAsMuchAsPossible(const int y, const int x, int role) {
 		sleep(0.7);
 #endif
 		AIMoveChecker(cur_cursor_y + 2, cur_cursor_x + 2, EatOrNot, EatenOne);
-		if (Move_to.press_y == 0 && role != queen)
+		if(Move_to.press_y == 0 && role != queen)
 			MakeQueen();
 		Display();
 		EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x + 2, role);
 	}
-	if (direction == UL) {
+	if(direction == UL){
 		EatenOne.press_x = cur_cursor_x - 1;
 		EatenOne.press_y = cur_cursor_y + 1;
 #ifdef WINDOWS
@@ -1350,107 +1331,222 @@ void EatAsMuchAsPossible(const int y, const int x, int role) {
 		sleep(0.7);
 #endif
 		AIMoveChecker(cur_cursor_y + 2, cur_cursor_x - 2, EatOrNot, EatenOne);
-		if (Move_to.press_y == 0 && role != queen)
+		if(Move_to.press_y == 0 && role != queen)
 			MakeQueen();
 		Display();
 		EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x - 2, role);
 	}
 }
 
-void AIProPlayer(void) {
-	for (cur_cursor_y = DESK_SIZE - 1; cur_cursor_y >= 0; --cur_cursor_y) {
-		for (cur_cursor_x = DESK_SIZE - 1; cur_cursor_x >= 0; --cur_cursor_x) {
-			int EatOrNot = NO_EAT, PossibilityToEat = 0; // Было ли съедение или нет
-			Pressed EatenOne = { 0, 0 }; // Координаты съеденной, если таковая будет
+void AIProPlayer(void){
 
-			PossibilityToEat = PossibleToEat();
+	typedef struct{
+		int base_x;
+		int base_y;
+		int to_x;
+		int to_y;
+		int ROLE;
+	}Coordinates_;
 
-			if ((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn) {//только начало хода
-				if (desk[cur_cursor_y][cur_cursor_x].role == soldier) {
+	int EatOrNot = NO_EAT, PossibilityToEat = 0;
+	Pressed EatenOne = {0, 0}; // Координаты съеденной, если таковая будет
+	PossibilityToEat = PossibleToEat();
+
+	if(PossibilityToEat == 0){
+		const int SOLDIER = 0, QUEEN = 1;
+		int TOTAL_ROLE = 0, QUIT = FALSE, TOTAL_VAR = -1;
+		int tmp = 0;
+		unsigned int Schet = 0;
+		Coordinates_ Coordinates[MAX_POSITIONS];
+		for(int i = 0; i < MAX_POSITIONS; i++){
+			Coordinates[i].base_x = -1;
+			Coordinates[i].base_y = -1;
+			Coordinates[i].ROLE = -1;
+			Coordinates[i].to_x = -1;
+			Coordinates[i].to_y = -1;
+		}
+		EatOrNot = NO_EAT;
+		for(cur_cursor_y = DESK_SIZE - 1; cur_cursor_y >= 0; --cur_cursor_y){
+			for(cur_cursor_x = DESK_SIZE - 1; cur_cursor_x >= 0; --cur_cursor_x){
+				if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn){//только начало хода
+					if(desk[cur_cursor_y][cur_cursor_x].role == soldier){
+						if(cur_cursor_y - 1 >= 0 && cur_cursor_x - 1 >= 0 && desk[cur_cursor_y - 1][cur_cursor_x - 1].field == empty){//DL
+							if(Schet < MAX_POSITIONS){
+								Coordinates[Schet].base_x = cur_cursor_x;
+								Coordinates[Schet].base_y = cur_cursor_y;
+								Coordinates[Schet].to_x = cur_cursor_x - 1;
+								Coordinates[Schet].to_y = cur_cursor_y - 1;
+								Coordinates[Schet].ROLE = SOLDIER;
+								Schet++;
+							}else if(rand() % 2){
+								tmp = rand() % MAX_POSITIONS;
+								Coordinates[tmp].base_x = cur_cursor_x;
+								Coordinates[tmp].base_y = cur_cursor_y;
+								Coordinates[tmp].to_x = cur_cursor_x - 1;
+								Coordinates[tmp].to_y = cur_cursor_y - 1;
+								Coordinates[tmp].ROLE = SOLDIER;
+							}
+						}
+						if(cur_cursor_y - 1 >= 0 && cur_cursor_x + 1 < DESK_SIZE && desk[cur_cursor_y - 1][cur_cursor_x + 1].field == empty){//DR
+							if(Schet < MAX_POSITIONS){
+								Coordinates[Schet].base_x = cur_cursor_x;
+								Coordinates[Schet].base_y = cur_cursor_y;
+								Coordinates[Schet].to_x = cur_cursor_x + 1;
+								Coordinates[Schet].to_y = cur_cursor_y - 1;
+								Coordinates[Schet].ROLE = SOLDIER;
+								Schet++;
+							}else if(rand() % 2){
+								tmp = rand() % MAX_POSITIONS;
+								Coordinates[tmp].base_x = cur_cursor_x;
+								Coordinates[tmp].base_y = cur_cursor_y;
+								Coordinates[tmp].to_x = cur_cursor_x + 1;
+								Coordinates[tmp].to_y = cur_cursor_y - 1;
+								Coordinates[tmp].ROLE = SOLDIER;
+							}
+						}
+					}else{
+						// Для дамки
+						for(int i = cur_cursor_y + 1, j = cur_cursor_x - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j--){
+							if(desk[i][j].field == occup){
+								break;
+							}else{
+								if(rand() % 2){
+									Coordinates[MAX_POSITIONS - 1].base_x = cur_cursor_x;
+									Coordinates[MAX_POSITIONS - 1].base_y = cur_cursor_y;
+									Coordinates[MAX_POSITIONS - 1].to_x = j;
+									Coordinates[MAX_POSITIONS - 1].to_y = i;
+									Coordinates[MAX_POSITIONS - 1].ROLE = QUEEN;
+								}
+							}
+						}
+						for(int i = cur_cursor_y + 1, j = cur_cursor_x + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j++){
+							if(desk[i][j].field == occup){
+								break;
+							}else{
+								if(rand() % 2){
+									Coordinates[MAX_POSITIONS - 2].base_x = cur_cursor_x;
+									Coordinates[MAX_POSITIONS - 2].base_y = cur_cursor_y;
+									Coordinates[MAX_POSITIONS - 2].to_x = j;
+									Coordinates[MAX_POSITIONS - 2].to_y = i;
+									Coordinates[MAX_POSITIONS - 2].ROLE = QUEEN;
+								}
+							}
+						}
+						for(int i = cur_cursor_y - 1, j = cur_cursor_x - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j--){
+							if(desk[i][j].field == occup){
+								break;
+							}else{
+								if(rand() % 2){
+									Coordinates[MAX_POSITIONS - 3].base_x = cur_cursor_x;
+									Coordinates[MAX_POSITIONS - 3].base_y = cur_cursor_y;
+									Coordinates[MAX_POSITIONS - 3].to_x = j;
+									Coordinates[MAX_POSITIONS - 3].to_y = i;
+									Coordinates[MAX_POSITIONS - 3].ROLE = QUEEN;
+								}
+							}
+						}
+						for(int i = cur_cursor_y - 1, j = cur_cursor_x + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j++){
+							if(desk[i][j].field == occup){
+								break;
+							}else{
+								if(rand() % 2){
+									Coordinates[MAX_POSITIONS - 4].base_x = cur_cursor_x;
+									Coordinates[MAX_POSITIONS - 4].base_y = cur_cursor_y;
+									Coordinates[MAX_POSITIONS - 4].to_x = j;
+									Coordinates[MAX_POSITIONS - 4].to_y = i;
+									Coordinates[MAX_POSITIONS - 4].ROLE = QUEEN;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		// Выбор из выбранных
+		while(!QUIT){
+			TOTAL_VAR = rand() % MAX_POSITIONS;
+			if(Coordinates[TOTAL_VAR].base_x != -1)
+				QUIT = TRUE;
+		}
+		cur_cursor_y = Coordinates[TOTAL_VAR].base_y;
+		cur_cursor_x = Coordinates[TOTAL_VAR].base_x;
+		PressedToMove();
+		AIMoveChecker(Coordinates[TOTAL_VAR].to_y, Coordinates[TOTAL_VAR].to_x, EatOrNot, EatenOne);
+		if(Move_to.press_y == 0 && TOTAL_ROLE == SOLDIER)
+			MakeQueen();
+		Display();
+		return;
+	}
+	EatOrNot = EAT;
+	for(cur_cursor_y = DESK_SIZE - 1; cur_cursor_y >= 0; --cur_cursor_y){
+		for(cur_cursor_x = DESK_SIZE - 1; cur_cursor_x >= 0; --cur_cursor_x){
+			if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn){//только начало хода
+				if(desk[cur_cursor_y][cur_cursor_x].role == soldier){
 					int direction = -1;
-					if ((direction = AIPossibilityToEatDown(cur_cursor_y, cur_cursor_x))) {
+					if((direction = AIPossibilityToEatDown(cur_cursor_y, cur_cursor_x))){
 						PressedToMove();
-						EatOrNot = EAT;
-						if (direction == DR) {
+						if(direction == DR){
 							EatenOne.press_x = cur_cursor_x + 1;
 							EatenOne.press_y = cur_cursor_y - 1;
 							AIMoveChecker(cur_cursor_y - 2, cur_cursor_x + 2, EatOrNot, EatenOne);
-							if (Move_to.press_y == 0)
+							if(Move_to.press_y == 0)
 								MakeQueen();
 							Display();
 							EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x + 2, soldier);
 						}
-						if (direction == DL) {
+						if(direction == DL){
 							EatenOne.press_x = cur_cursor_x - 1;
 							EatenOne.press_y = cur_cursor_y - 1;
 							AIMoveChecker(cur_cursor_y - 2, cur_cursor_x - 2, EatOrNot, EatenOne);
-							if (Move_to.press_y == 0)
+							if(Move_to.press_y == 0)
 								MakeQueen();
 							Display();
 							EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x - 2, soldier);
 						}
 						return;
-					}
-					else if ((direction = PossibilityToEatUp(cur_cursor_y, cur_cursor_x))) {
+					}else if((direction = AIPossibilityToEatUp(cur_cursor_y, cur_cursor_x))){
 						PressedToMove();
-						EatOrNot = EAT;
-						if (direction == UR) {
+						if(direction == UR){
 							EatenOne.press_x = cur_cursor_x + 1;
 							EatenOne.press_y = cur_cursor_y + 1;
 							AIMoveChecker(cur_cursor_y + 2, cur_cursor_x + 2, EatOrNot, EatenOne);
-							if (Move_to.press_y == 0)
+							if(Move_to.press_y == 0)
 								MakeQueen();
 							Display();
 							EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x + 2, soldier);
 						}
-						if (direction == UL) {
+						if(direction == UL){
 							EatenOne.press_x = cur_cursor_x - 1;
 							EatenOne.press_y = cur_cursor_y + 1;
 							AIMoveChecker(cur_cursor_y + 2, cur_cursor_x - 2, EatOrNot, EatenOne);
-							if (Move_to.press_y == 0)
+							if(Move_to.press_y == 0)
 								MakeQueen();
 							Display();
 							EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x - 2, soldier);
 						}
 						return;
 					}
-					else if (PossibilityToEat == 0) {//возможен простой ход
-						if (cur_cursor_y - 1 >= 0 && cur_cursor_x - 1 >= 0 && desk[cur_cursor_y - 1][cur_cursor_x - 1].field == empty) {//DL
-							PressedToMove();
-							AIMoveChecker(cur_cursor_y - 1, cur_cursor_x - 1, EatOrNot, EatenOne);
-							if (Move_to.press_y == 0)
-								MakeQueen();
-							Display();
-							return;
-						}
-						if (cur_cursor_y - 1 >= 0 && cur_cursor_x + 1 < DESK_SIZE && desk[cur_cursor_y - 1][cur_cursor_x + 1].field == empty) {//DR
-							PressedToMove();
-							AIMoveChecker(cur_cursor_y - 1, cur_cursor_x + 1, EatOrNot, EatenOne);
-							if (Move_to.press_y == 0)
-								MakeQueen();
-							Display();
-							return;
-						}
-					}
-				}
-				else if (desk[cur_cursor_y][cur_cursor_x].role == queen) {
+				}else if(desk[cur_cursor_y][cur_cursor_x].role == queen){
 					int x = -100, y = -100, direction = -1;
-					if (AIPossibilityToEatByQueen(cur_cursor_y, cur_cursor_x, &y, &x, &direction)) {
-						EatOrNot = EAT;
+					if(AIPossibilityToEatByQueen(cur_cursor_y,
+												 cur_cursor_x,
+												 &y,
+												 &x,
+												 &direction)){
 						PressedToMove();
-						if (direction == UL) {
+						if(direction == UL){
 							EatenOne.press_x = x + 1;
 							EatenOne.press_y = y - 1;
 						}
-						if (direction == UR) {
+						if(direction == UR){
 							EatenOne.press_x = x - 1;
 							EatenOne.press_y = y - 1;
 						}
-						if (direction == DL) {
+						if(direction == DL){
 							EatenOne.press_x = x + 1;
 							EatenOne.press_y = y + 1;
 						}
-						if (direction == DR) {
+						if(direction == DR){
 							EatenOne.press_x = x - 1;
 							EatenOne.press_y = y + 1;
 						}
@@ -1459,79 +1555,55 @@ void AIProPlayer(void) {
 						EatAsMuchAsPossible(y, x, queen);
 						return;
 					}
-					else if (cur_cursor_y + 1 < DESK_SIZE && cur_cursor_x - 1 >= 0 && desk[cur_cursor_y + 1][cur_cursor_x - 1].field == empty) {//UL
-						PressedToMove();
-						AIMoveChecker(cur_cursor_y + 1, cur_cursor_x - 1, EatOrNot, EatenOne);
-						Display();
-						return;
-					}
-					else if (cur_cursor_x + 1 < DESK_SIZE && cur_cursor_y + 1 < DESK_SIZE && desk[cur_cursor_y + 1][cur_cursor_x + 1].field == empty) {//UR
-						PressedToMove();
-						AIMoveChecker(cur_cursor_y + 1, cur_cursor_x + 1, EatOrNot, EatenOne);
-						Display();
-						return;
-					}
-					else if (cur_cursor_y - 1 >= 0 && cur_cursor_x - 1 >= 0 && desk[cur_cursor_y - 1][cur_cursor_x - 1].field == empty) {//DL
-						PressedToMove();
-						AIMoveChecker(cur_cursor_y - 1, cur_cursor_x - 1, EatOrNot, EatenOne);
-						Display();
-						return;
-					}
-					else if (cur_cursor_x + 1 < DESK_SIZE && cur_cursor_y - 1 >= 0 && desk[cur_cursor_y - 1][cur_cursor_x + 1].field == empty) {//DR
-						PressedToMove();
-						AIMoveChecker(cur_cursor_y - 1, cur_cursor_x + 1, EatOrNot, EatenOne);
-						Display();
-						return;
-					}
 				}
 			}
 		}
 	}
 }
 
-void Keyboard(unsigned char key, int x, int y) {
+void Keyboard(unsigned char key, int x, int y){
 	static int NumOfMoves = 0;
 	const char ESCAPE = '\033'; // Символ ESCAPE
 
-	if (key == ESCAPE) {
+	if(key == ESCAPE){
 		freeList();
 		exit(EXIT_SUCCESS);
 	}
 
-	if (Status == AFTER_GAME) {
+	if(Status == AFTER_GAME){
 		int i = 0, NameLen = strlen(Name);
 		char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
 		char nums[] = "0123456789";
 
-		if (key == 13) {// Enter
+		if(key == 13){// Enter
 			Status = GAME;
 			//.Запись
-			if (head == NULL)
+			if(head == NULL)
 				CreateList();
 			AddToList(Name, NumOfMoves);
 			RecordListToFile();
 			// Обнуление
-			for (i = 0; i < NAME_LEN; i++)
+			for(i = 0; i < NAME_LEN; i++)
 				Name[i] = '\0';
 			NumOfMoves = 0;
 			return;
 		}
-		if (key == 0x08) {// backspace
-			if (NameLen) {
+		if(key == 0x08){// backspace
+			if(NameLen){
 				Name[NameLen - 1] = '\0';
 			}
 		}
-		for (i = 0; i < strlen(alphabet); i++) {
-			if (alphabet[i] == key || Alphabet[i] == key) {
-				if (NameLen < NAME_LEN) {
+		for(i = 0; i < strlen(alphabet); i++){
+			if(alphabet[i] == key || Alphabet[i] == key){
+				if(NameLen < NAME_LEN){
 					Name[NameLen] = Alphabet[i];
 					return;
 				}
 			}
 		}
-		for (i = 0; i < strlen(nums); i++) {
-			if (nums[i] == key) {
-				if (NameLen < NAME_LEN) {
+		for(i = 0; i < strlen(nums); i++){
+			if(nums[i] == key){
+				if(NameLen < NAME_LEN){
 					Name[NameLen] = nums[i];
 					return;
 				}
@@ -1540,78 +1612,131 @@ void Keyboard(unsigned char key, int x, int y) {
 	}
 
 	// Enter
-	if (Status == GAME) {
-		if (key == 13 && WasMoved == true) {
-			Enter();
+	if(Status == GAME){
+		if(key == 13 && WasMoved == true){
+			if(Level == VSPEOPLE)
+				Enter();
+			else if(Level == VSAI){
+				int QUIT = 0;
+				if(turn == white)
+					NumOfMoves++;
+				space_pressed = false;
+				// Необходимо для того, чтобы снять подсвеченность
+				for(int i = 0; i < DESK_SIZE; i++){
+					for(int j = 0; j < DESK_SIZE; j++){
+						if(desk[i][j].focused.toMove == true){
+							desk[i][j].focused.toMove = false;
+							QUIT = 1;
+							break;
+						}
+					}
+					if(QUIT)
+						break;
+				}
+
+				Display();
+#ifdef WINDOWS
+				Sleep(700);
+#endif
+
+#ifdef LINUX
+				sleep(0.7);
+#endif
+				turn = black;
+				WasMoved = false;
+
+				if(CheckEndNoMove()){
+					if(turn == black){
+						Status = AFTER_GAME;
+						return;
+					}else{
+						Status = AFTER_GAME_LOOSE;
+						return;
+					}
+				}
+
+				//тут вот должен вызываться компьютер
+				int tmp_cur_x = cur_cursor_x, tmp_cur_y = cur_cursor_y;
+				AIProPlayer();
+				cur_cursor_x = tmp_cur_x;
+				cur_cursor_y = tmp_cur_y;
+				WasMoved = false;
+				turn = white;
+
+				if(CheckEndNoMove()){
+					if(turn == black){
+						Status = AFTER_GAME;
+						return;
+					}else{
+						Status = AFTER_GAME_LOOSE;
+						return;
+					}
+				}
+			}
 			return;
 		}
 
-		if ((cursor == true) && (key == ' ')) {
-			if ((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn) {
+		if((cursor == true) && (key == ' ')){
+			if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn){
 				PressedToMove();
-			}
-			else if (space_pressed == true) {
-				if ((Move_from.press_x == cur_cursor_x) && (Move_from.press_y == cur_cursor_y)) // Второе нажатие на поле снимает фокус
+			}else if(space_pressed == true){
+				if((Move_from.press_x == cur_cursor_x) && (Move_from.press_y == cur_cursor_y)) // Второе нажатие на поле снимает фокус
 				{
 					desk[Move_from.press_y][Move_from.press_x].focused.toMove = false;
 					space_pressed = false;
-				}
-				else {
+				}else{
 					// Проверка, возможно ли / если нет - убираем начальную подсвеченность
 					int EatOrNot = NO_EAT, PossibilityToEat = 0; // Было ли съедение или нет
-					Pressed EatenOne = { 0, 0 }; // Координаты съеденной, если таковая будет
+					Pressed EatenOne = {0, 0}; // Координаты съеденной, если таковая будет
 
 					PossibilityToEat = PossibleToEat();
 
-					if (Possible(cur_cursor_x,
-								 cur_cursor_y,
-								 &EatOrNot,
-								 &EatenOne) && ((EatOrNot == EAT && PossibilityToEat) || \
-							(EatOrNot == NO_EAT && !PossibilityToEat))) {
+					if(Possible(cur_cursor_x,
+								cur_cursor_y,
+								&EatOrNot,
+								&EatenOne) && ((EatOrNot == EAT && PossibilityToEat) || \
+                            (EatOrNot == NO_EAT && !PossibilityToEat))){
 						MoveChecker(EatOrNot, EatenOne);
 						// Конец игры
-						if (EatOrNot == EAT) {
-							if (CheckEndEmpty()) {
-								if (turn == white) {
+						if(EatOrNot == EAT){
+							if(CheckEndEmpty()){
+								if(turn == white){
 									Status = AFTER_GAME;
 									return;
-								}
-								else {
+								}else{
 									Status = AFTER_GAME_LOOSE;
 									return;
 								}
 							}
 						}
 
-						if (turn == white && Move_to.press_y == DESK_SIZE - 1)
+						if(turn == white && Move_to.press_y == DESK_SIZE - 1)
 							MakeQueen();
-						else if (turn == black && Move_to.press_y == 0)
+						else if(turn == black && Move_to.press_y == 0)
 							MakeQueen();
 
-						if (EndOfMove(EatOrNot)) {
-							if (Level == VSPEOPLE) {
-								if (turn == white)
+						if(EndOfMove(EatOrNot)){
+							if(Level == VSPEOPLE){
+								if(turn == white)
 									NumOfMoves++;
 
-								if (turn == white)
+								if(turn == white)
 									turn = black;
 								else
 									turn = white;
 								WasMoved = false;
 
-								if (CheckEndNoMove()) {
-									if (turn == black) {
+								if(CheckEndNoMove()){
+									if(turn == black){
 										Status = AFTER_GAME;
 										return;
-									}
-									else {
+									}else{
 										Status = AFTER_GAME_LOOSE;
 										return;
 									}
 								}
-							}
-							else {
-								if (turn == white)
+							}else{
+								if(turn == white)
 									NumOfMoves++;
 
 								Display();
@@ -1625,12 +1750,11 @@ void Keyboard(unsigned char key, int x, int y) {
 								turn = black;
 								WasMoved = false;
 
-								if (CheckEndNoMove()) {
-									if (turn == black) {
+								if(CheckEndNoMove()){
+									if(turn == black){
 										Status = AFTER_GAME;
 										return;
-									}
-									else {
+									}else{
 										Status = AFTER_GAME_LOOSE;
 										return;
 									}
@@ -1644,19 +1768,17 @@ void Keyboard(unsigned char key, int x, int y) {
 								WasMoved = false;
 								turn = white;
 
-								if (CheckEndNoMove()) {
-									if (turn == black) {
+								if(CheckEndNoMove()){
+									if(turn == black){
 										Status = AFTER_GAME;
 										return;
-									}
-									else {
+									}else{
 										Status = AFTER_GAME_LOOSE;
 										return;
 									}
 								}
 							}
-						}
-						else
+						}else
 							PressedToMove();
 					}
 				}
@@ -1666,55 +1788,54 @@ void Keyboard(unsigned char key, int x, int y) {
 	}
 }
 
-void SpecialKeyboard(int key, int x, int y) {
-	if (key == GLUT_KEY_F1) {
-		if (Status == GAME) {
+void SpecialKeyboard(int key, int x, int y){
+	if(key == GLUT_KEY_F1){
+		if(Status == GAME){
 			Restart_button.Color = 0;
 			Save_Position_button.Color = 0;
 			Recover_Position_button.Color = 0;
 			Status = MENU;
-		}
-		else if (Status == MENU)
+		}else if(Status == MENU)
 			Status = GAME;
-		else if (Status == DEVELOPERS)
+		else if(Status == DEVELOPERS)
 			Status = MENU;
-		else if (Status == AFTER_GAME)
+		else if(Status == AFTER_GAME)
 			Status = GAME;
-		else if (Status == SRECORDS)
+		else if(Status == SRECORDS)
 			Status = MENU;
 	}
 
-	if (Status == GAME) {
-		if (key == GLUT_KEY_LEFT) {
-			if (!firstBut()) {
-				if (cur_cursor_x != 0) {
+	if(Status == GAME){
+		if(key == GLUT_KEY_LEFT){
+			if(!firstBut()){
+				if(cur_cursor_x != 0){
 					desk[cur_cursor_y][cur_cursor_x].focused.highlighted = false;
 					cur_cursor_x--;
 					desk[cur_cursor_y][cur_cursor_x].focused.highlighted = true;
 				}
 			}
 		}
-		if (key == GLUT_KEY_RIGHT) {
-			if (!firstBut()) {
-				if (cur_cursor_x != DESK_SIZE - 1) {
+		if(key == GLUT_KEY_RIGHT){
+			if(!firstBut()){
+				if(cur_cursor_x != DESK_SIZE - 1){
 					desk[cur_cursor_y][cur_cursor_x].focused.highlighted = false;
 					cur_cursor_x++;
 					desk[cur_cursor_y][cur_cursor_x].focused.highlighted = true;
 				}
 			}
 		}
-		if (key == GLUT_KEY_UP) {
-			if (!firstBut()) {
-				if (cur_cursor_y != DESK_SIZE - 1) {
+		if(key == GLUT_KEY_UP){
+			if(!firstBut()){
+				if(cur_cursor_y != DESK_SIZE - 1){
 					desk[cur_cursor_y][cur_cursor_x].focused.highlighted = false;
 					cur_cursor_y++;
 					desk[cur_cursor_y][cur_cursor_x].focused.highlighted = true;
 				}
 			}
 		}
-		if (key == GLUT_KEY_DOWN) {
-			if (!firstBut()) {
-				if (cur_cursor_y != 0) {
+		if(key == GLUT_KEY_DOWN){
+			if(!firstBut()){
+				if(cur_cursor_y != 0){
 					desk[cur_cursor_y][cur_cursor_x].focused.highlighted = false;
 					cur_cursor_y--;
 					desk[cur_cursor_y][cur_cursor_x].focused.highlighted = true;
@@ -1724,12 +1845,12 @@ void SpecialKeyboard(int key, int x, int y) {
 	}
 }
 
-void Mouse(int button, int state, int x, int y) {
+void Mouse(int button, int state, int x, int y){
 	int Y = Height - y; // При растяжении вверх расст. до кнопки растет на столько же
 	// Координаты от левого верхнего угла
-	if (Status == GAME) {
-		if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Restart_button.Left_border && x <= Restart_button.Right_border && \
-			Y <= Restart_button.Up_border && Y >= Restart_button.Down_border) {
+	if(Status == GAME){
+		if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Restart_button.Left_border && x <= Restart_button.Right_border && \
+            Y <= Restart_button.Up_border && Y >= Restart_button.Down_border){
 			cur_cursor_x = 0;
 			cur_cursor_y = 0;
 			space_pressed = false;
@@ -1739,19 +1860,19 @@ void Mouse(int button, int state, int x, int y) {
 			setDesk();
 			return;
 		}
-		if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Save_Position_button.Left_border && x <= Save_Position_button.Right_border && \
-			Y <= Save_Position_button.Up_border && Y >= Save_Position_button.Down_border) {
+		if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Save_Position_button.Left_border && x <= Save_Position_button.Right_border && \
+            Y <= Save_Position_button.Up_border && Y >= Save_Position_button.Down_border){
 			int i = 0, j = 0;
 			FILE* sav = NULL;
 			sav = fopen(SAVES, "w");
-			if (sav == NULL) {
+			if(sav == NULL){
 				perror("Error\n");
 				return;
 			}
 			fprintf(sav, "%d %d\n", turn, WasMoved);
-			for (i = 0; i < DESK_SIZE; i++) {
-				for (j = 0; j < DESK_SIZE; j++) {
-					if (desk[i][j].field == occup)
+			for(i = 0; i < DESK_SIZE; i++){
+				for(j = 0; j < DESK_SIZE; j++){
+					if(desk[i][j].field == occup)
 						fprintf(sav,
 								"%d %d %d %d %d\n",
 								desk[i][j].checker_side,
@@ -1764,12 +1885,12 @@ void Mouse(int button, int state, int x, int y) {
 			fclose(sav);
 			return;
 		}
-		if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Recover_Position_button.Left_border && x <= Recover_Position_button.Right_border && \
-			Y <= Recover_Position_button.Up_border && Y >= Recover_Position_button.Down_border) {
+		if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Recover_Position_button.Left_border && x <= Recover_Position_button.Right_border && \
+            Y <= Recover_Position_button.Up_border && Y >= Recover_Position_button.Down_border){
 			int i = 0, j = 0, Side = 0, Role = 0, Focus = 0, X = 0, Y = 0, Turn = 0, WASmoved = 0;
 			FILE* sav = NULL;
 			sav = fopen(SAVES, "r");
-			if (sav == NULL) {
+			if(sav == NULL){
 				perror("Error\n");
 				return;
 			}
@@ -1781,15 +1902,15 @@ void Mouse(int button, int state, int x, int y) {
 			turn = white;
 			clearDesk();
 
-			if (fscanf(sav, "%d%*c%d%*c", &Turn, &WASmoved) == EOF) {
+			if(fscanf(sav, "%d%*c%d%*c", &Turn, &WASmoved) == EOF){
 				fclose(sav);
 				return;
 			}
 			turn = Turn;
 			WasMoved = WASmoved;
-			for (i = 0; i < DESK_SIZE; i++) {
-				for (j = 0; j < DESK_SIZE; j++) {
-					if (fscanf(sav, "%d%*c%d%*c%d%*c%d%*c%d", &Side, &Role, &Focus, &X, &Y) == EOF) {
+			for(i = 0; i < DESK_SIZE; i++){
+				for(j = 0; j < DESK_SIZE; j++){
+					if(fscanf(sav, "%d%*c%d%*c%d%*c%d%*c%d", &Side, &Role, &Focus, &X, &Y) == EOF){
 						fclose(sav);
 						return;
 					}
@@ -1802,63 +1923,57 @@ void Mouse(int button, int state, int x, int y) {
 			fclose(sav);
 			return;
 		}
-	}
-	else if (Status == MENU) {
-		if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Developers_button.Left_border && x <= Developers_button.Right_border && \
-			Y <= Developers_button.Up_border && Y >= Developers_button.Down_border) {
+	}else if(Status == MENU){
+		if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Developers_button.Left_border && x <= Developers_button.Right_border && \
+            Y <= Developers_button.Up_border && Y >= Developers_button.Down_border){
 			Status = DEVELOPERS;
 			Developers_button.Color = 0;
 		}
-		if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Records_button.Left_border && x <= Records_button.Right_border && \
-			Y <= Records_button.Up_border && Y >= Records_button.Down_border) {
+		if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Records_button.Left_border && x <= Records_button.Right_border && \
+            Y <= Records_button.Up_border && Y >= Records_button.Down_border){
 			Status = SRECORDS;
 			Records_button.Color = 0;
 		}
 	}
 }
 
-void Mouse_Passive(int x, int y) {
+void Mouse_Passive(int x, int y){
 	int Y = Height - y;
-	if (Status == GAME) {
-		if (x >= Restart_button.Left_border && x <= Restart_button.Right_border && \
-			Y <= Restart_button.Up_border && Y >= Restart_button.Down_border) {
+	if(Status == GAME){
+		if(x >= Restart_button.Left_border && x <= Restart_button.Right_border && \
+            Y <= Restart_button.Up_border && Y >= Restart_button.Down_border){
 			Restart_button.Color = 1;
-		}
-		else
+		}else
 			Restart_button.Color = 0;
 
-		if (x >= Save_Position_button.Left_border && x <= Save_Position_button.Right_border && \
-			Y <= Save_Position_button.Up_border && Y >= Save_Position_button.Down_border) {
+		if(x >= Save_Position_button.Left_border && x <= Save_Position_button.Right_border && \
+            Y <= Save_Position_button.Up_border && Y >= Save_Position_button.Down_border){
 			Save_Position_button.Color = 1;
-		}
-		else
+		}else
 			Save_Position_button.Color = 0;
 
-		if (x >= Recover_Position_button.Left_border && x <= Recover_Position_button.Right_border && \
-			Y <= Recover_Position_button.Up_border && Y >= Recover_Position_button.Down_border) {
+		if(x >= Recover_Position_button.Left_border && x <= Recover_Position_button.Right_border && \
+            Y <= Recover_Position_button.Up_border && Y >= Recover_Position_button.Down_border){
 			Recover_Position_button.Color = 1;
-		}
-		else
+		}else
 			Recover_Position_button.Color = 0;
-	}
-	else if (Status == MENU) {
-		if (x >= Developers_button.Left_border && x <= Developers_button.Right_border && \
-			Y <= Developers_button.Up_border && Y >= Developers_button.Down_border) {
+	}else if(Status == MENU){
+		if(x >= Developers_button.Left_border && x <= Developers_button.Right_border && \
+            Y <= Developers_button.Up_border && Y >= Developers_button.Down_border){
 			Developers_button.Color = 1;
-		}
-		else
+		}else
 			Developers_button.Color = 0;
 
-		if (x >= Records_button.Left_border && x <= Records_button.Right_border && \
-			Y <= Records_button.Up_border && Y >= Records_button.Down_border) {
+		if(x >= Records_button.Left_border && x <= Records_button.Right_border && \
+            Y <= Records_button.Up_border && Y >= Records_button.Down_border){
 			Records_button.Color = 1;
-		}
-		else
+		}else
 			Records_button.Color = 0;
 	}
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv){
+	srand(time(NULL));
 	openRecords();
 	setDesk(); // Начальное заполнение массива структур
 	setButtons();
