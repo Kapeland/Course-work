@@ -35,16 +35,17 @@
 #define MENU 1
 #define GAME 2
 #define DEVELOPERS 3
+#define OPTIONS 7
 #define AFTER_GAME 4
 #define AFTER_GAME_LOOSE 6
 #define SRECORDS 5
 
 #define VSPEOPLE 9
-#define VSAI 10
 #define LOWAI 11
+#define MIDAI 12
 
 int Status = GAME;
-int Level = VSAI;
+int Level = MIDAI;
 // Начальная широта и высота окна
 GLint Width = 1050, Height = 800;
 const int CubeSize = 100; // Размер квадрата
@@ -58,6 +59,9 @@ typedef enum{
 enum Moves{
 	IMP, DR, DL, UR, UL
 };
+typedef enum{
+	Debut, MittelSpiel, EndSpiel
+}Phase_;
 
 colors turn = white;
 logik cursor = false;
@@ -66,6 +70,14 @@ logik WasMoved = false; //
 int cur_cursor_x = 0, cur_cursor_y = 0;
 char Alphabet[] = "ABCDEFGHIGKLMNOPQRSTUVWXYZ";
 char Name[NAME_LEN] = "";
+
+typedef struct{
+	int base_x;
+	int base_y;
+	int to_x;
+	int to_y;
+	int ROLE;
+}Coordinates_;
 
 typedef struct{ // 1 - x, 2 - y
 	float Down_border;
@@ -108,7 +120,8 @@ typedef struct records_{
 
 Desk desk[DESK_SIZE][DESK_SIZE];
 Pressed Move_from, Move_to;
-Buttons_ Restart_button = {0}, Save_Position_button = {0}, Recover_Position_button = {0}, Developers_button = {0}, Records_button = {0};
+Buttons_ Restart_button = {0}, Save_Position_button = {0}, Recover_Position_button = {0}, Developers_button = {0}, Records_button = {0},
+		Options_button = {0}, Easy_button = {0}, Medium_button = {0};
 records* head = NULL;
 
 char inChar(int a){
@@ -284,6 +297,12 @@ void drawText(const char* string, int posX, const int posY){
 	posX -= add * len / 2;
 	while(string[i] != '\0'){
 		glColor3f(0, 0, 0);
+		if(Status == OPTIONS){
+			if(Level == LOWAI && (!strcmp(string, "EASY")))
+				glColor3ub(255, 0, 255);
+			else if(Level == MIDAI && (!strcmp(string, "MEDIUM")))
+				glColor3ub(255, 0, 255);
+		}
 		glRasterPos2i(posX, posY);
 		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, string[i]);
 		if(string[i] == 'I')
@@ -389,6 +408,21 @@ void setButtons(void){
 	Records_button.Down_border = Records_button.Up_border - koef;
 	Records_button.Left_border = Developers_button.Left_border;
 	Records_button.Right_border = Developers_button.Right_border;
+
+	Options_button.Up_border = Records_button.Down_border - Distance;
+	Options_button.Down_border = Options_button.Up_border - koef;
+	Options_button.Left_border = Developers_button.Left_border;
+	Options_button.Right_border = Developers_button.Right_border;
+	// В OPTIONS
+	Easy_button.Up_border = 486;
+	Easy_button.Down_border = 470;
+	Easy_button.Left_border = 500;
+	Easy_button.Right_border = 555;
+
+	Medium_button.Up_border = 350;
+	Medium_button.Down_border = 331;
+	Medium_button.Left_border = 482;
+	Medium_button.Right_border = 571;
 }
 
 void pole(int add_x, int add_y, colors color){
@@ -524,6 +558,15 @@ void drawButtonsMenu(void){
 	glVertex2f(Records_button.Left_border, Records_button.Up_border);
 	glVertex2f(Records_button.Right_border, Records_button.Up_border);
 	glVertex2f(Records_button.Right_border, Records_button.Down_border);
+
+	if(Options_button.Color == 0)
+		glColor3ub(189, 183, 107);
+	else
+		glColor3ub(165, 42, 42);
+	glVertex2f(Options_button.Left_border, Options_button.Down_border);
+	glVertex2f(Options_button.Left_border, Options_button.Up_border);
+	glVertex2f(Options_button.Right_border, Options_button.Up_border);
+	glVertex2f(Options_button.Right_border, Options_button.Down_border);
 	glEnd();
 }
 
@@ -562,6 +605,11 @@ void drawTextOnButtonsMenu(void){
 	AddY = koef * (Records_button.Up_border - Records_button.Down_border) / 2;
 	PosY = (int)(Records_button.Down_border + AddY);
 	drawText("RECORDS", PosX, PosY);
+
+	PosX = (Options_button.Left_border + Options_button.Right_border) / 2;
+	AddY = koef * (Options_button.Up_border - Options_button.Down_border) / 2;
+	PosY = (int)(Options_button.Down_border + AddY);
+	drawText("OPTIONS", PosX, PosY);
 
 	drawText("F1 TO RETURN", 100, 50);
 }
@@ -658,6 +706,24 @@ void drawEndGameLoose(void){
 	drawText("YOU'VE LOST, TRY AGAIN", MidW, MidH);
 }
 
+void drawOptions(void){
+	const int Constanta = 70, Constanta2 = 20;
+	float MidH = Height / 2;
+	float MidW = Width / 2;
+	const float AddX = 200, AddY = 300;
+
+	glBegin(GL_QUADS);
+	glColor3ub(240, 230, 140);
+	glVertex2f(MidW - AddX, MidH - AddY);
+	glVertex2f(MidW - AddX, MidH + AddY);
+	glVertex2f(MidW + AddX, MidH + AddY);
+	glVertex2f(MidW + AddX, MidH - AddY);
+	glEnd();
+	drawText("F1 TO QUIT", MidW, MidH - AddY + Constanta2);
+	drawText("EASY", MidW, MidH + Constanta);
+	drawText("MEDIUM", MidW, MidH - Constanta);
+}
+
 void Display(void){
 	if(Status == GAME || Status == AFTER_GAME || Status == AFTER_GAME_LOOSE){
 		int add_x = 0, i = 0, k = 0, add_y = 0;
@@ -705,12 +771,13 @@ void Display(void){
 #endif
 			Status = GAME;
 		}
-	}else if(Status == MENU){
+	}else if(Status == MENU || Status == OPTIONS){
 		glClearColor(0.7, 0.5, 0.2, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		drawMenu();
-
+		if(Status == OPTIONS)
+			drawOptions();
 		glFinish();
 	}else if(Status == DEVELOPERS){
 		glClearColor(0.7, 0.5, 0.2, 1);
@@ -848,7 +915,7 @@ int Possible(int xx, int yy, int* EatOrNot, Pressed* EatenOne){
 		int i = 0, j = 0, EnemyOnWay = 0, SUB = 0;
 		i = Move_from.press_y;
 		j = Move_from.press_x;
-		if(Move_from.press_x > xx && Move_from.press_y > yy){
+		if(Move_from.press_x > xx && Move_from.press_y > yy){//DL
 			EnemyOnWay = 0;
 			for(i = Move_from.press_y - 1, j = Move_from.press_x - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j--){
 				SUB = Sub_for_Possible_for_queen(xx, yy, i, j, &EnemyOnWay, EatOrNot, EatenOne);
@@ -1212,7 +1279,8 @@ int EndOfMove(int EatOrNot){
 			return NOT_END;
 		if(PossibilityToEatDown(cur_place_y, cur_place_x))
 			return NOT_END;
-	}else{// Если дамка
+	}else // Если дамка
+	{
 		if(PossibilityToEatByQueen(cur_place_y, cur_place_x))
 			return NOT_END;
 	}
@@ -1255,104 +1323,233 @@ void Enter(void){
 }
 
 void EatAsMuchAsPossible(const int y, const int x, int role){
+	//y && x - cur pos of Checker
 	if(x < 0 || x >= DESK_SIZE || y < 0 || y >= DESK_SIZE){
 		return;
 	}
 
-	int direction = -1, EatOrNot = NO_EAT;
+	if(role == soldier){
+		int direction = -1, EatOrNot = NO_EAT;
 
-	if((direction = AIPossibilityToEatDown(y, x)) ||
-			(direction = AIPossibilityToEatUp(y, x))){
-		EatOrNot = EAT;
-	}else{
-		return;
-	}
+		if((direction = AIPossibilityToEatDown(y, x)) ||
+				(direction = AIPossibilityToEatUp(y, x))){
+			EatOrNot = EAT;
+		}else{
+			return;
+		}
 
-	Pressed EatenOne = {0, 0};
-	cur_cursor_x = x;
-	cur_cursor_y = y;
-	PressedToMove();
-	if(direction == DR){
-		EatenOne.press_x = cur_cursor_x + 1;
-		EatenOne.press_y = cur_cursor_y - 1;
+		Pressed EatenOne = {0, 0};
+		cur_cursor_x = x;
+		cur_cursor_y = y;
+		PressedToMove();
+		if(direction == DR){
+			EatenOne.press_x = cur_cursor_x + 1;
+			EatenOne.press_y = cur_cursor_y - 1;
 #ifdef WINDOWS
-		Sleep(700);
+			Sleep(700);
 #endif
 
 #ifdef LINUX
-		sleep(0.7);
+			sleep(0.7);
 #endif
-		AIMoveChecker(cur_cursor_y - 2, cur_cursor_x + 2, EatOrNot, EatenOne);
-		if(Move_to.press_y == 0 && role != queen)
-			MakeQueen();
-		Display();
-		EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x + 2, role);
-	}
-	if(direction == DL){
-		EatenOne.press_x = cur_cursor_x - 1;
-		EatenOne.press_y = cur_cursor_y - 1;
+			AIMoveChecker(cur_cursor_y - 2, cur_cursor_x + 2, EatOrNot, EatenOne);
+			if(Move_to.press_y == 0){
+				MakeQueen();
+				Display();
+				EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x + 2, queen);
+			}else{
+				Display();
+				EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x + 2, role);
+			}
+		}
+		if(direction == DL){
+			EatenOne.press_x = cur_cursor_x - 1;
+			EatenOne.press_y = cur_cursor_y - 1;
 #ifdef WINDOWS
-		Sleep(700);
+			Sleep(700);
 #endif
 
 #ifdef LINUX
-		sleep(0.7);
+			sleep(0.7);
 #endif
-		AIMoveChecker(cur_cursor_y - 2, cur_cursor_x - 2, EatOrNot, EatenOne);
-		if(Move_to.press_y == 0 && role != queen)
-			MakeQueen();
-		Display();
-		EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x - 2, role);
-	}
-	if(direction == UR){
-		EatenOne.press_x = cur_cursor_x + 1;
-		EatenOne.press_y = cur_cursor_y + 1;
+			AIMoveChecker(cur_cursor_y - 2, cur_cursor_x - 2, EatOrNot, EatenOne);
+			if(Move_to.press_y == 0){
+				MakeQueen();
+				Display();
+				EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x + 2, queen);
+			}else{
+				Display();
+				EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x + 2, role);
+			}
+		}
+		if(direction == UR){
+			EatenOne.press_x = cur_cursor_x + 1;
+			EatenOne.press_y = cur_cursor_y + 1;
 #ifdef WINDOWS
-		Sleep(700);
+			Sleep(700);
 #endif
 
 #ifdef LINUX
-		sleep(0.7);
+			sleep(0.7);
 #endif
-		AIMoveChecker(cur_cursor_y + 2, cur_cursor_x + 2, EatOrNot, EatenOne);
-		if(Move_to.press_y == 0 && role != queen)
-			MakeQueen();
-		Display();
-		EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x + 2, role);
-	}
-	if(direction == UL){
-		EatenOne.press_x = cur_cursor_x - 1;
-		EatenOne.press_y = cur_cursor_y + 1;
+			AIMoveChecker(cur_cursor_y + 2, cur_cursor_x + 2, EatOrNot, EatenOne);
+			Display();
+			EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x + 2, role);
+		}
+		if(direction == UL){
+			EatenOne.press_x = cur_cursor_x - 1;
+			EatenOne.press_y = cur_cursor_y + 1;
 #ifdef WINDOWS
-		Sleep(700);
+			Sleep(700);
 #endif
 
 #ifdef LINUX
-		sleep(0.7);
+			sleep(0.7);
 #endif
-		AIMoveChecker(cur_cursor_y + 2, cur_cursor_x - 2, EatOrNot, EatenOne);
-		if(Move_to.press_y == 0 && role != queen)
-			MakeQueen();
-		Display();
-		EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x - 2, role);
+			AIMoveChecker(cur_cursor_y + 2, cur_cursor_x - 2, EatOrNot, EatenOne);
+			Display();
+			EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x - 2, role);
+		}
+	}
+	if(role == queen){
+		int direction = -1, EatOrNot = NO_EAT;
+		Pressed EatenOne = {0, 0};
+		int xx = -100, yy = -100;
+		if(AIPossibilityToEatByQueen(y, x, &yy, &xx, &direction)){
+			EatOrNot = EAT;
+			cur_cursor_x = x;
+			cur_cursor_y = y;
+			PressedToMove();
+			int EnemyOnWay = 0;
+			//если мы можем сходить так, чтобы потом иметь возможность срубить, то в циклах for ищется эта позиция
+			if(direction == UL){
+				EatenOne.press_x = xx + 1;
+				EatenOne.press_y = yy - 1;
+				EnemyOnWay = 0;
+				for(int i = yy + 1, j = xx - 1; i < DESK_SIZE && j >= 0; i++, j--){//UL
+					if(desk[i][j].field == empty){
+						int X = -100, Y = -100;
+						direction = -1;
+						if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+#ifdef WINDOWS
+							Sleep(700);
+#endif
+
+#ifdef LINUX
+							sleep(0.7);
+#endif
+							AIMoveChecker(i, j, EatOrNot, EatenOne);
+							Display();
+							EatAsMuchAsPossible(i, j, role);
+							return;
+						}
+					}else{
+						break;
+					}
+				}
+			}
+			if(direction == UR){
+				EatenOne.press_x = xx - 1;
+				EatenOne.press_y = yy - 1;
+				EnemyOnWay = 0;
+				for(int i = yy + 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE; i++, j++){//UR
+					if(desk[i][j].field == empty){
+						int X = -100, Y = -100;
+						direction = -1;
+						if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+#ifdef WINDOWS
+							Sleep(700);
+#endif
+
+#ifdef LINUX
+							sleep(0.7);
+#endif
+							AIMoveChecker(i, j, EatOrNot, EatenOne);
+							Display();
+							EatAsMuchAsPossible(i, j, role);
+							return;
+						}
+					}else{
+						break;
+					}
+				}
+			}
+			if(direction == DL){
+				EatenOne.press_x = xx + 1;
+				EatenOne.press_y = yy + 1;
+				EnemyOnWay = 0;
+				for(int i = yy - 1, j = xx - 1; i >= 0 && j >= 0; i--, j--){//DL
+					if(desk[i][j].field == empty){
+						int X = -100, Y = -100;
+						direction = -1;
+						if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+#ifdef WINDOWS
+							Sleep(700);
+#endif
+
+#ifdef LINUX
+							sleep(0.7);
+#endif
+							AIMoveChecker(i, j, EatOrNot, EatenOne);
+							Display();
+							EatAsMuchAsPossible(i, j, role);
+							return;
+						}
+					}else{
+						break;
+					}
+				}
+			}
+			if(direction == DR){
+				EatenOne.press_x = xx - 1;
+				EatenOne.press_y = yy + 1;
+				EnemyOnWay = 0;
+				for(int i = yy - 1, j = xx + 1; j < DESK_SIZE && i >= 0; i--, j++){//DR
+					if(desk[i][j].field == empty){
+						int X = -100, Y = -100;
+						direction = -1;
+						if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+#ifdef WINDOWS
+							Sleep(700);
+#endif
+
+#ifdef LINUX
+							sleep(0.7);
+#endif
+							AIMoveChecker(i, j, EatOrNot, EatenOne);
+							Display();
+							EatAsMuchAsPossible(i, j, role);
+							return;
+						}
+					}else{
+						break;
+					}
+				}
+			}
+#ifdef WINDOWS
+			Sleep(700);
+#endif
+
+#ifdef LINUX
+			sleep(0.7);
+#endif
+			AIMoveChecker(yy, xx, EatOrNot, EatenOne);
+			Display();
+			EatAsMuchAsPossible(yy, xx, role);
+			return;
+		}else{
+			return;
+		}
 	}
 }
 
 void AIProPlayer(void){
 
-	typedef struct{
-		int base_x;
-		int base_y;
-		int to_x;
-		int to_y;
-		int ROLE;
-	}Coordinates_;
-
 	int EatOrNot = NO_EAT, PossibilityToEat = 0;
 	Pressed EatenOne = {0, 0}; // Координаты съеденной, если таковая будет
 	PossibilityToEat = PossibleToEat();
 
-	if(PossibilityToEat == 0){
+	if(!PossibilityToEat){
 		const int SOLDIER = 0, QUEEN = 1;
 		int TOTAL_ROLE = 0, QUIT = FALSE, TOTAL_VAR = -1;
 		int tmp = 0;
@@ -1370,6 +1567,7 @@ void AIProPlayer(void){
 			for(cur_cursor_x = DESK_SIZE - 1; cur_cursor_x >= 0; --cur_cursor_x){
 				if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn){//только начало хода
 					if(desk[cur_cursor_y][cur_cursor_x].role == soldier){
+
 						if(cur_cursor_y - 1 >= 0 && cur_cursor_x - 1 >= 0 && desk[cur_cursor_y - 1][cur_cursor_x - 1].field == empty){//DL
 							if(Schet < MAX_POSITIONS){
 								Coordinates[Schet].base_x = cur_cursor_x;
@@ -1477,14 +1675,16 @@ void AIProPlayer(void){
 		Display();
 		return;
 	}
-	EatOrNot = EAT;
+
 	for(cur_cursor_y = DESK_SIZE - 1; cur_cursor_y >= 0; --cur_cursor_y){
 		for(cur_cursor_x = DESK_SIZE - 1; cur_cursor_x >= 0; --cur_cursor_x){
+
 			if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn){//только начало хода
 				if(desk[cur_cursor_y][cur_cursor_x].role == soldier){
 					int direction = -1;
 					if((direction = AIPossibilityToEatDown(cur_cursor_y, cur_cursor_x))){
 						PressedToMove();
+						EatOrNot = EAT;
 						if(direction == DR){
 							EatenOne.press_x = cur_cursor_x + 1;
 							EatenOne.press_y = cur_cursor_y - 1;
@@ -1506,12 +1706,11 @@ void AIProPlayer(void){
 						return;
 					}else if((direction = AIPossibilityToEatUp(cur_cursor_y, cur_cursor_x))){
 						PressedToMove();
+						EatOrNot = EAT;
 						if(direction == UR){
 							EatenOne.press_x = cur_cursor_x + 1;
 							EatenOne.press_y = cur_cursor_y + 1;
 							AIMoveChecker(cur_cursor_y + 2, cur_cursor_x + 2, EatOrNot, EatenOne);
-							if(Move_to.press_y == 0)
-								MakeQueen();
 							Display();
 							EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x + 2, soldier);
 						}
@@ -1519,13 +1718,12 @@ void AIProPlayer(void){
 							EatenOne.press_x = cur_cursor_x - 1;
 							EatenOne.press_y = cur_cursor_y + 1;
 							AIMoveChecker(cur_cursor_y + 2, cur_cursor_x - 2, EatOrNot, EatenOne);
-							if(Move_to.press_y == 0)
-								MakeQueen();
 							Display();
 							EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x - 2, soldier);
 						}
 						return;
 					}
+
 				}else if(desk[cur_cursor_y][cur_cursor_x].role == queen){
 					int x = -100, y = -100, direction = -1;
 					if(AIPossibilityToEatByQueen(cur_cursor_y,
@@ -1533,27 +1731,773 @@ void AIProPlayer(void){
 												 &y,
 												 &x,
 												 &direction)){
+						EatOrNot = EAT;
 						PressedToMove();
+
+						int EnemyOnWay = 0;
+						//если мы можем сходить так, чтобы потом иметь возможность срубить, то в циклах for ищется эта позиция
 						if(direction == UL){
 							EatenOne.press_x = x + 1;
 							EatenOne.press_y = y - 1;
+							EnemyOnWay = 0;
+							for(int i = y + 1, j = x - 1; i < DESK_SIZE && j >= 0; i++, j--){//UL
+								if(desk[i][j].field == empty){
+									int X = -100, Y = -100;
+									direction = -1;
+									if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+										AIMoveChecker(i, j, EatOrNot, EatenOne);
+										Display();
+										EatAsMuchAsPossible(i, j, queen);
+										return;
+									}
+								}else{
+									break;
+								}
+							}
 						}
 						if(direction == UR){
 							EatenOne.press_x = x - 1;
 							EatenOne.press_y = y - 1;
+							EnemyOnWay = 0;
+							for(int i = y + 1, j = x + 1; i < DESK_SIZE && j < DESK_SIZE; i++, j++){//UR
+								if(desk[i][j].field == empty){
+									int X = -100, Y = -100;
+									direction = -1;
+									if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+										AIMoveChecker(i, j, EatOrNot, EatenOne);
+										Display();
+										EatAsMuchAsPossible(i, j, queen);
+										return;
+									}
+								}else{
+									break;
+								}
+							}
 						}
 						if(direction == DL){
 							EatenOne.press_x = x + 1;
 							EatenOne.press_y = y + 1;
+							EnemyOnWay = 0;
+							for(int i = y - 1, j = x - 1; i >= 0 && j >= 0; i--, j--){//DL
+								if(desk[i][j].field == empty){
+									int X = -100, Y = -100;
+									direction = -1;
+									if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+
+										AIMoveChecker(i, j, EatOrNot, EatenOne);
+										Display();
+										EatAsMuchAsPossible(i, j, queen);
+										return;
+									}
+								}else{
+									break;
+								}
+							}
 						}
 						if(direction == DR){
 							EatenOne.press_x = x - 1;
 							EatenOne.press_y = y + 1;
+							EnemyOnWay = 0;
+							for(int i = y - 1, j = x + 1; j < DESK_SIZE && i >= 0; i--, j++){//DR
+								if(desk[i][j].field == empty){
+									int X = -100, Y = -100;
+									direction = -1;
+									if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+										AIMoveChecker(i, j, EatOrNot, EatenOne);
+										Display();
+										EatAsMuchAsPossible(i, j, queen);
+										return;
+									}
+								}else{
+									break;
+								}
+							}
 						}
 						AIMoveChecker(y, x, EatOrNot, EatenOne);
 						Display();
 						EatAsMuchAsPossible(y, x, queen);
 						return;
+					}
+				}
+			}
+		}
+	}
+}
+
+void CountCheckers(int* White, int* Black){
+	int i = 0, j = 0;
+	for(i = 0; i < DESK_SIZE; i++){
+		for(j = 0; j < DESK_SIZE; j++){
+			if(desk[i][j].field == occup){
+				if(desk[i][j].checker_side == white)
+					(*White)++;
+				else
+					(*Black)++;
+			}
+		}
+	}
+}
+
+int PhaseFoo(int White, int Black){
+//Debut, MittelSpiel, EndSpiel
+	if(White <= 5 || Black <= 5)
+		return EndSpiel;
+	else if(White < 10 || Black < 10)
+		return MittelSpiel;
+	else
+		return Debut;
+}
+
+int ExChange(int yy, int xx, int* y_to, int* x_to){
+	if(desk[yy][xx].role == soldier){
+		if(yy + 2 < DESK_SIZE && xx + 2 < DESK_SIZE && xx - 2 >= 0 && yy - 2 >= 0){
+			// DL
+			if(desk[yy + 2][xx + 2].field == occup && desk[yy + 2][xx + 2].checker_side == turn &&
+					desk[yy - 1][xx - 1].field == empty && desk[yy + 1][xx + 1].field == occup
+					&& desk[yy + 1][xx + 1].checker_side == turn && desk[yy - 2][xx - 2].field == occup && desk[yy - 2][xx - 2].checker_side != turn){
+				// Необходима проверка, не будет ли у врага серии
+				if(!((desk[yy - 1][xx + 1].field == occup && desk[yy - 1][xx + 1].checker_side == turn && desk[yy - 2][xx + 2].field == empty)
+						|| (desk[yy + 1][xx - 1].field == occup && desk[yy + 1][xx - 1].checker_side == turn && desk[yy + 2][xx - 2].field == empty))){
+					(*y_to) = yy - 1;
+					(*x_to) = xx - 1;
+					return TRUE;
+				}
+			}
+			// DR
+			if(desk[yy + 2][xx - 2].field == occup && desk[yy + 2][xx - 2].checker_side == turn &&
+					desk[yy - 1][xx + 1].field == empty && desk[yy + 1][xx - 1].field == occup
+					&& desk[yy + 1][xx - 1].checker_side == turn && desk[yy - 2][xx + 2].field == occup && desk[yy - 2][xx + 2].checker_side != turn){
+				if(!((desk[yy - 1][xx - 1].field == occup && desk[yy - 1][xx - 1].checker_side == turn && desk[yy - 2][xx - 2].field == empty)
+						|| (desk[yy + 1][xx + 1].field == occup && desk[yy + 1][xx + 1].checker_side == turn && desk[yy + 2][xx + 2].field == empty))){
+					(*y_to) = yy - 1;
+					(*x_to) = xx + 1;
+					return TRUE;
+				}
+			}
+		}
+		// DR
+		if(xx - 4 >= 0 && (desk[yy - 2][xx - 2].field == empty || desk[yy - 2][xx - 2].checker_side == turn) && yy - 2 >= 0 && yy + 2 < DESK_SIZE
+				&& desk[yy - 1][xx - 1].field == empty
+				&& desk[yy - 2][xx].field == occup && desk[yy - 2][xx].checker_side != turn &&
+				desk[yy + 1][xx - 1].field == occup && desk[yy + 1][xx - 1].checker_side == turn &&
+				desk[yy + 2][xx].field == occup && desk[yy + 2][xx].checker_side == turn &&
+				desk[yy + 1][xx - 3].field == occup && desk[yy - 1][xx - 3].checker_side == turn &&
+				desk[yy + 2][xx - 4].field == occup && desk[yy + 2][xx - 4].checker_side == turn &&
+				(desk[yy - 1][xx - 3].field == empty || (desk[yy - 1][xx - 3].field == occup && desk[yy - 1][xx - 3].checker_side == turn
+						&& desk[yy - 2][xx - 4].field == occup && desk[yy - 2][xx - 4].checker_side == turn))){
+			(*y_to) = yy - 1;
+			(*x_to) = xx - 1;
+			return TRUE;
+		}
+		// DL
+		if(yy - 2 >= 0 && yy + 2 < DESK_SIZE &&
+				xx + 4 < DESK_SIZE && desk[yy - 1][xx + 1].field == empty && (desk[yy - 2][xx + 2].field == empty || desk[yy - 2][xx + 2].checker_side == turn)
+				&& desk[yy - 2][xx].field == occup && desk[yy - 2][xx].checker_side != turn &&
+				desk[yy + 1][xx + 1].field == occup && desk[yy + 1][xx + 1].checker_side == turn &&
+				desk[yy + 2][xx].field == occup && desk[yy + 2][xx].checker_side == turn &&
+				desk[yy + 1][xx + 3].field == occup && desk[yy + 1][xx + 3].checker_side == turn &&
+				desk[yy + 2][xx + 4].field == occup && desk[yy + 2][xx + 4].checker_side == turn &&
+				(desk[yy - 1][xx + 3].field == empty || (desk[yy - 1][xx + 3].field == occup && desk[yy - 1][xx + 3].checker_side == turn
+						&& desk[yy - 2][xx + 4].field == occup && desk[yy - 2][xx + 4].checker_side == turn))){
+			(*y_to) = yy - 1;
+			(*x_to) = xx + 1;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+int MayBeEaten(int yy, int xx){ //IMP, DR, DL, UR, UL
+	int i = 0, j = 0;
+	if(yy - 1 >= 0 && xx - 1 >= 0 && yy + 1 < DESK_SIZE && xx + 1 < DESK_SIZE){
+		if(desk[yy + 1][xx + 1].field == empty){
+			if(desk[yy - 1][xx - 1].field == occup && desk[yy - 1][xx - 1].checker_side != turn)
+				return TRUE;
+			for(i = yy - 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j--){
+				if(desk[i][j].field == occup && desk[i][j].checker_side == turn)
+					break;
+				if(desk[i][j].field == occup && desk[i][j].checker_side != turn && desk[i][j].role == queen)
+					return UR;
+			}
+		}
+		if(desk[yy + 1][xx - 1].field == empty){
+			if(desk[yy - 1][xx + 1].field == occup && desk[yy - 1][xx + 1].checker_side != turn)
+				return TRUE;
+			for(i = yy - 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j++){
+				if(desk[i][j].field == occup && desk[i][j].checker_side == turn)
+					break;
+				if(desk[i][j].field == occup && desk[i][j].checker_side != turn && desk[i][j].role == queen)
+					return UL;
+			}
+		}
+		if(desk[yy - 1][xx + 1].field == empty){
+			if(desk[yy + 1][xx - 1].field == occup && desk[yy + 1][xx - 1].checker_side != turn)
+				return TRUE;
+			for(i = yy + 1, j = xx - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j--){
+				if(desk[i][j].field == occup && desk[i][j].checker_side == turn)
+					break;
+				if(desk[i][j].field == occup && desk[i][j].checker_side != turn && desk[i][j].role == queen)
+					return DR;
+			}
+		}
+		if(desk[yy - 1][xx - 1].field == empty){
+			if(desk[yy + 1][xx + 1].field == occup && desk[yy + 1][xx + 1].checker_side != turn)
+				return TRUE;
+			for(i = yy + 1, j = xx + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j++){
+				if(desk[i][j].field == occup && desk[i][j].checker_side == turn)
+					break;
+				if(desk[i][j].field == occup && desk[i][j].checker_side != turn && desk[i][j].role == queen)
+					return DL;
+			}
+		}
+	}
+	return IMP;
+}
+
+int ConquerorBorders(int* y_to, int* x_to){
+	int yy = 0;
+	int COMRADE1 = 0, COMRADE2 = 0, COMREXIST = FALSE;
+	struct MaxProfit{
+		int From_x;
+		int From_y;
+		int To_x;
+		int To_y;
+	}Max;
+	Max.To_x = -1;
+	Max.To_y = 100;
+	for(yy = DESK_SIZE - 1; yy >= 0; --yy){
+		if((space_pressed == false) && (desk[yy][1].field == occup) &&
+				desk[yy][1].checker_side == turn && yy - 1 >= 0 && desk[yy - 1][0].field == empty){
+			if(yy - 1 < Max.To_y){
+				Max.From_x = 1;
+				Max.From_y = yy;
+				Max.To_x = 0;
+				Max.To_y = yy - 1;
+			}
+		}
+		if((space_pressed == false) && (desk[yy][DESK_SIZE - 2].field == occup) &&
+				desk[yy][DESK_SIZE - 2].checker_side == turn && yy - 1 >= 0 && desk[yy - 1][7].field == empty){
+			if(yy - 1 < Max.To_y){
+				Max.From_x = 6;
+				Max.From_y = yy;
+				Max.To_x = 7;
+				Max.To_y = yy - 1;
+			}
+		}
+	}
+	if(Max.To_x != -1){
+		//
+		if(Max.To_x == 0 && desk[Max.From_y - 1][Max.From_x + 1].field == occup &&
+				desk[Max.From_y - 1][Max.From_x + 1].checker_side == turn){
+			COMREXIST = TRUE;
+			COMRADE1 = MayBeEaten(Max.From_y - 1, Max.From_x + 1);
+			desk[Max.From_y][Max.From_x].field = empty;
+			COMRADE2 = MayBeEaten(Max.From_y - 1, Max.From_x + 1);
+			desk[Max.From_y][Max.From_x].field = occup;
+		}
+		if(Max.To_x == 7 && desk[Max.From_y - 1][Max.From_x - 1].field == occup &&
+				desk[Max.From_y - 1][Max.From_x - 1].checker_side == turn){
+			COMREXIST = TRUE;
+			COMRADE1 = MayBeEaten(Max.From_y - 1, Max.From_x - 1);
+			desk[Max.From_y][Max.From_x].field = empty;
+			COMRADE2 = MayBeEaten(Max.From_y - 1, Max.From_x - 1);
+			desk[Max.From_y][Max.From_x].field = occup;
+		}
+		//
+		if(COMREXIST && (COMRADE1 != COMRADE2)){
+			return FALSE;
+		}
+		cur_cursor_y = Max.From_y;
+		cur_cursor_x = Max.From_x;
+		(*y_to) = Max.To_y;
+		(*x_to) = Max.To_x;
+		return TRUE;
+	}
+	return FALSE;
+}
+
+int TryToFixLoose(int yy, int xx, enum Moves warn, int* y_to, int* x_to){
+	if(warn == DL || warn == DR){
+		if(yy - 2 >= 0 && desk[yy - 2][xx].field == empty && !(xx - 2 >= 0 && desk[yy - 2][xx - 2].field == occup && desk[yy - 2][xx - 2].checker_side != turn)){
+			if(desk[yy - 1][xx - 1].field == empty){
+				cur_cursor_y = yy;
+				cur_cursor_x = xx;
+				(*y_to) = yy - 1;
+				(*x_to) = xx - 1;
+				return TRUE;
+			}
+		}
+		if(yy - 2 >= 0 && desk[yy - 2][xx].field == empty && !(xx + 2 >= 0 && desk[yy - 2][xx + 2].field == occup && desk[yy - 2][xx + 2].checker_side != turn)){
+			if(desk[yy - 1][xx + 1].field == empty){
+				cur_cursor_y = yy;
+				cur_cursor_x = xx;
+				(*y_to) = yy - 1;
+				(*x_to) = xx + 1;
+				return TRUE;
+			}
+		}
+	}else if(warn == UR){
+		if(yy + 2 < DESK_SIZE && desk[yy + 2][xx].field == occup && desk[yy + 2][xx].checker_side == turn){
+			cur_cursor_y = yy + 2;
+			cur_cursor_x = xx;
+			(*y_to) = yy + 1;
+			(*x_to) = xx + 1;
+			return TRUE;
+		}
+		if(xx + 2 < DESK_SIZE && yy + 2 < DESK_SIZE && desk[yy + 2][xx + 2].field == occup && desk[yy + 2][xx + 2].checker_side == turn){
+			cur_cursor_y = yy + 2;
+			cur_cursor_x = xx + 2;
+			(*y_to) = yy + 1;
+			(*x_to) = xx + 1;
+			return TRUE;
+		}
+	}else if(warn == UL){
+		if(yy + 2 < DESK_SIZE && desk[yy + 2][xx].field == occup && desk[yy + 2][xx].checker_side == turn){
+			cur_cursor_y = yy + 2;
+			cur_cursor_x = xx;
+			(*y_to) = yy + 1;
+			(*x_to) = xx - 1;
+			return TRUE;
+		}
+		if(yy + 2 < DESK_SIZE && xx - 2 >= 0 && desk[yy + 2][xx - 2].field == occup && desk[yy + 2][xx - 2].checker_side == turn){
+			cur_cursor_y = yy + 2;
+			cur_cursor_x = xx - 2;
+			(*y_to) = yy + 1;
+			(*x_to) = xx - 1;
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+int NoLoses(int* y_to, int* x_to){
+	// Поиск хода без потерь/Защиты
+	enum Moves warning = -1;
+	int CONTINUE = FALSE;
+	int tmpX = 0, tmpY = 0;
+
+	for(cur_cursor_y = DESK_SIZE - 1; cur_cursor_y >= 0; --cur_cursor_y){
+		for(cur_cursor_x = DESK_SIZE - 1; cur_cursor_x >= 0; --cur_cursor_x){
+			if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn){
+				warning = MayBeEaten(cur_cursor_y, cur_cursor_x);
+				if(warning != IMP){
+					if(TryToFixLoose(cur_cursor_y, cur_cursor_x, warning, y_to, x_to))
+						return TRUE;
+				}
+			}
+		}
+	}
+	// Ход без потерь// Пока soldiers only
+	int COMRADE1 = 0, COMRADE2 = 0, COMREXIST = FALSE;
+	for(cur_cursor_y = 0; cur_cursor_y < DESK_SIZE; ++cur_cursor_y){
+		for(cur_cursor_x = 0; cur_cursor_x < DESK_SIZE; ++cur_cursor_x){
+
+			if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) &&
+					desk[cur_cursor_y][cur_cursor_x].checker_side == turn){
+				if(desk[cur_cursor_y][cur_cursor_x].role == soldier && cur_cursor_y - 1 >= 0){
+					if(cur_cursor_x - 1 >= 0 && desk[cur_cursor_y - 1][cur_cursor_x - 1].field == empty){
+						tmpX = cur_cursor_x;
+						tmpY = cur_cursor_y;
+						if(cur_cursor_x + 1 < DESK_SIZE && desk[tmpY - 1][tmpX + 1].field == occup &&
+								desk[tmpY - 1][tmpX + 1].checker_side == turn)
+							COMREXIST = TRUE;
+						if(COMREXIST)
+							COMRADE1 = MayBeEaten(cur_cursor_y - 1, cur_cursor_x + 1);
+						desk[tmpY][tmpX].field = empty;
+						if(COMREXIST)
+							COMRADE2 = MayBeEaten(cur_cursor_y - 1, cur_cursor_x + 1);
+						if(!MayBeEaten(cur_cursor_y - 1, cur_cursor_x - 1) && COMRADE1 == COMRADE2){
+							(*y_to) = cur_cursor_y - 1;
+							(*x_to) = cur_cursor_x - 1;
+							return TRUE;
+						}
+						desk[tmpY][tmpX].field = occup;
+						COMREXIST = FALSE;
+					}
+					if(cur_cursor_x + 1 < DESK_SIZE && desk[cur_cursor_y - 1][cur_cursor_x + 1].field == empty){
+						tmpX = cur_cursor_x;
+						tmpY = cur_cursor_y;
+						if(cur_cursor_x - 1 >= 0 && desk[tmpY - 1][tmpX - 1].field == occup &&
+								desk[tmpY - 1][tmpX - 1].checker_side == turn)
+							COMREXIST = TRUE;
+						if(COMREXIST)
+							COMRADE1 = MayBeEaten(cur_cursor_y - 1, cur_cursor_x - 1);
+						desk[tmpY][tmpX].field = empty;
+						if(COMREXIST)
+							COMRADE1 = MayBeEaten(cur_cursor_y - 1, cur_cursor_x - 1);
+						if(!MayBeEaten(cur_cursor_y - 1, cur_cursor_x + 1) && COMRADE1 == COMRADE2){
+							(*y_to) = cur_cursor_y - 1;
+							(*x_to) = cur_cursor_x + 1;
+							return TRUE;
+						}
+						desk[tmpY][tmpX].field = occup;
+						COMREXIST = FALSE;
+					}
+				}
+			}
+		}
+	}
+	return FALSE;
+}
+
+int ProfitQueen(const int tmpY, const int tmpX, const int ii, const int jj, int* y_to, int* x_to){
+	int i = 0, j = 0;
+	int FLAG = FALSE, CONTINUE = TRUE;
+	desk[tmpY][tmpX].field = empty; // Изначальная координата, i,j - куда двигаем
+	if(!MayBeEaten(ii, jj)){
+		// DL
+		for(i = ii - 1, j = jj - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0 && CONTINUE; i--, j--){
+			if(desk[i][j].field == occup && desk[i][j].checker_side != turn && i - 1 >= 0 && j - 1 >= 0 && desk[i - 1][j - 1].field == empty){
+				CONTINUE = FALSE;
+				FLAG = TRUE;
+				break;
+			}
+			if(desk[i][j].field == occup)
+				break;
+			if(i - 1 >= 0 && desk[i - 1][j].field == occup && desk[i - 1][j].checker_side != turn && i - 1 <= 5){
+				CONTINUE = FALSE;
+				FLAG = TRUE;
+				break;
+			}
+		}
+		// UL
+		for(i = ii + 1, j = jj - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0 && CONTINUE; i++, j--){
+			if(desk[i][j].field == occup && desk[i][j].checker_side != turn && i + 1 < DESK_SIZE && j - 1 >= 0 && desk[i + 1][j - 1].field == empty){
+				CONTINUE = FALSE;
+				FLAG = TRUE;
+				break;
+			}
+			if(desk[i][j].field == occup)
+				break;
+			if(i - 1 >= 0 && j - 1 >= 0 && desk[i - 1][j - 1].field == occup && desk[i - 1][j - 1].checker_side != turn && i - 1 <= 5){
+				CONTINUE = FALSE;
+				FLAG = TRUE;
+				break;
+			}
+		}
+		// UR
+		for(i = ii + 1, j = jj + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0 && CONTINUE; i++, j++){
+			if(desk[i][j].field == occup && desk[i][j].checker_side != turn && i - 1 >= 0 && j - 1 >= 0 && desk[i + 1][j + 1].field == empty){
+				CONTINUE = FALSE;
+				FLAG = TRUE;
+				break;
+			}
+			if(desk[i][j].field == occup)
+				break;
+			if(i - 1 >= 0 && j + 1 < DESK_SIZE && desk[i - 1][j + 1].field == occup && desk[i - 1][j + 1].checker_side != turn && i - 1 <= 5){
+				CONTINUE = FALSE;
+				FLAG = TRUE;
+				break;
+			}
+		}
+		// DR
+		for(i = ii - 1, j = jj + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0 && CONTINUE; i--, j++){
+			if(desk[i][j].field == occup && desk[i][j].checker_side != turn && i - 1 >= 0 && j - 1 >= 0 && desk[i - 1][j + 1].field == empty){
+				CONTINUE = FALSE;
+				FLAG = TRUE;
+				break;
+			}
+			if(desk[i][j].field == occup)
+				break;
+			if(i - 1 >= 0 && desk[i - 1][j].field == occup && desk[i - 1][j].checker_side != turn && i - 1 <= 5){
+				CONTINUE = FALSE;
+				FLAG = TRUE;
+				break;
+			}
+		}
+		if(FLAG){
+			(*y_to) = ii;
+			(*x_to) = jj;
+			desk[tmpY][tmpX].field = occup;
+			return TRUE;
+		}
+	}
+	desk[tmpY][tmpX].field = occup;
+	return FALSE;
+}
+
+int QueenAttack(int* y_to, int* x_to){
+	int i = 0, j = 0;
+	int tmpX = 0, tmpY = 0;
+	for(cur_cursor_y = 0; cur_cursor_y < DESK_SIZE; ++cur_cursor_y){
+		for(cur_cursor_x = 0; cur_cursor_x < DESK_SIZE; ++cur_cursor_x){
+			if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) &&
+					desk[cur_cursor_y][cur_cursor_x].checker_side == turn && desk[cur_cursor_y][cur_cursor_x].role == queen){
+				tmpX = cur_cursor_x;
+				tmpY = cur_cursor_y;
+				// UR
+				for(i = tmpY + 1, j = tmpX + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j++){
+					if(desk[i][j].field == occup)
+						break;
+					else if(ProfitQueen(tmpY, tmpX, i, j, y_to, x_to))
+						return TRUE;
+				}
+				// UL
+				for(i = tmpY + 1, j = tmpX - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i++, j--){
+					if(desk[i][j].field == occup)
+						break;
+					else if(ProfitQueen(tmpY, tmpX, i, j, y_to, x_to))
+						return TRUE;
+				}
+				// DR
+				for(i = tmpY - 1, j = tmpX - 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j--){
+					if(desk[i][j].field == occup)
+						break;
+					else if(ProfitQueen(tmpY, tmpX, i, j, y_to, x_to))
+						return TRUE;
+				}
+				// DL
+				for(i = tmpY - 1, j = tmpX + 1; i < DESK_SIZE && j < DESK_SIZE && i >= 0 && j >= 0; i--, j++){
+					if(desk[i][j].field == occup)
+						break;
+					else if(ProfitQueen(tmpY, tmpX, i, j, y_to, x_to))
+						return TRUE;
+				}
+			}
+		}
+	}
+	return FALSE;
+}
+
+void AIProPlayerAdvanced(void){
+	const int SOLDIER = 0, QUEEN = 1;
+	Phase_ Phase = 0;
+	int EatOrNot = NO_EAT, PossibilityToEat = 0, NumWhite = 0, NumBlack = 0, x_to = 0, y_to = 0;
+	Pressed EatenOne = {0, 0}; // Координаты съеденной, если таковая будет
+
+	CountCheckers(&NumWhite, &NumBlack);
+	Phase = PhaseFoo(NumWhite, NumBlack);
+	PossibilityToEat = PossibleToEat();
+
+	if(!PossibilityToEat){
+		EatOrNot = NO_EAT;
+		if(Phase == Debut){
+			// Поиск размена (может быть ходом навстречу)
+			for(cur_cursor_y = DESK_SIZE - 1; cur_cursor_y >= 0; --cur_cursor_y){
+				for(cur_cursor_x = DESK_SIZE - 1; cur_cursor_x >= 0; --cur_cursor_x){
+					if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn){
+						if(ExChange(cur_cursor_y, cur_cursor_x, &y_to, &x_to)){
+							// make move
+							PressedToMove();
+							AIMoveChecker(y_to, x_to, EatOrNot, EatenOne);
+							Display();
+							return;
+						}
+					}
+				}
+			}
+			// Захват краевых позиций как можно дальше
+			if(ConquerorBorders(&y_to, &x_to)){
+				// make move
+				PressedToMove();
+				AIMoveChecker(y_to, x_to, EatOrNot, EatenOne);
+				Display();
+				return;
+			}
+			// Ход без потерь
+			if(NoLoses(&y_to, &x_to)){
+				// make move
+				PressedToMove();
+				AIMoveChecker(y_to, x_to, EatOrNot, EatenOne);
+				Display();
+				return;
+			}
+			// Ничего не сделать, деградация до простого бота
+			AIProPlayer();
+			return;
+		}else if(Phase == MittelSpiel){
+			if(ConquerorBorders(&y_to, &x_to)){
+				PressedToMove();
+				AIMoveChecker(y_to, x_to, EatOrNot, EatenOne);
+				if(Move_to.press_y == 0 && desk[Move_from.press_y][Move_from.press_x].role == soldier)
+					MakeQueen();
+				Display();
+				return;
+			}
+			if(NoLoses(&y_to, &x_to)){
+				PressedToMove();
+				AIMoveChecker(y_to, x_to, EatOrNot, EatenOne);
+				if(Move_to.press_y == 0 && desk[Move_from.press_y][Move_from.press_x].role == soldier)
+					MakeQueen();
+				Display();
+				return;
+			}
+			for(cur_cursor_y = DESK_SIZE - 1; cur_cursor_y >= 0; --cur_cursor_y){
+				for(cur_cursor_x = DESK_SIZE - 1; cur_cursor_x >= 0; --cur_cursor_x){
+					if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn){
+						if(ExChange(cur_cursor_y, cur_cursor_x, &y_to, &x_to)){
+							// make move
+							PressedToMove();
+							AIMoveChecker(y_to, x_to, EatOrNot, EatenOne);
+							if(Move_to.press_y == 0 && desk[Move_from.press_y][Move_from.press_x].role == soldier)
+								MakeQueen();
+							Display();
+							return;
+						}
+					}
+				}
+			}
+			AIProPlayer();
+			return;
+		}else if(Phase == EndSpiel){
+			if(rand() % 2 && QueenAttack(&y_to, &x_to)){
+				PressedToMove();
+				AIMoveChecker(y_to, x_to, EatOrNot, EatenOne);
+				Display();
+				return;
+			}
+			if(NoLoses(&y_to, &x_to)){
+				PressedToMove();
+				AIMoveChecker(y_to, x_to, EatOrNot, EatenOne);
+				if(Move_to.press_y == 0 && desk[Move_from.press_y][Move_from.press_x].role == soldier)
+					MakeQueen();
+				Display();
+				return;
+			}
+			AIProPlayer();
+			return;
+		}
+	}else{
+		// Надо кушать // пока старое
+		for(cur_cursor_y = DESK_SIZE - 1; cur_cursor_y >= 0; --cur_cursor_y){
+			for(cur_cursor_x = DESK_SIZE - 1; cur_cursor_x >= 0; --cur_cursor_x){
+				if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn){//только начало хода
+					if(desk[cur_cursor_y][cur_cursor_x].role == soldier){
+						int direction = -1;
+						if((direction = AIPossibilityToEatDown(cur_cursor_y, cur_cursor_x))){
+							PressedToMove();
+							EatOrNot = EAT;
+							if(direction == DR){
+								EatenOne.press_x = cur_cursor_x + 1;
+								EatenOne.press_y = cur_cursor_y - 1;
+								AIMoveChecker(cur_cursor_y - 2, cur_cursor_x + 2, EatOrNot, EatenOne);
+								if(Move_to.press_y == 0)
+									MakeQueen();
+								Display();
+								EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x + 2, soldier);
+							}
+							if(direction == DL){
+								EatenOne.press_x = cur_cursor_x - 1;
+								EatenOne.press_y = cur_cursor_y - 1;
+								AIMoveChecker(cur_cursor_y - 2, cur_cursor_x - 2, EatOrNot, EatenOne);
+								if(Move_to.press_y == 0)
+									MakeQueen();
+								Display();
+								EatAsMuchAsPossible(cur_cursor_y - 2, cur_cursor_x - 2, soldier);
+							}
+							return;
+						}else if((direction = AIPossibilityToEatUp(cur_cursor_y, cur_cursor_x))){
+							PressedToMove();
+							EatOrNot = EAT;
+							if(direction == UR){
+								EatenOne.press_x = cur_cursor_x + 1;
+								EatenOne.press_y = cur_cursor_y + 1;
+								AIMoveChecker(cur_cursor_y + 2, cur_cursor_x + 2, EatOrNot, EatenOne);
+								Display();
+								EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x + 2, soldier);
+							}
+							if(direction == UL){
+								EatenOne.press_x = cur_cursor_x - 1;
+								EatenOne.press_y = cur_cursor_y + 1;
+								AIMoveChecker(cur_cursor_y + 2, cur_cursor_x - 2, EatOrNot, EatenOne);
+								Display();
+								EatAsMuchAsPossible(cur_cursor_y + 2, cur_cursor_x - 2, soldier);
+							}
+							return;
+						}
+					}else if(desk[cur_cursor_y][cur_cursor_x].role == queen){
+						int x = -100, y = -100, direction = -1;
+						if(AIPossibilityToEatByQueen(cur_cursor_y,
+													 cur_cursor_x,
+													 &y,
+													 &x,
+													 &direction)){
+							EatOrNot = EAT;
+							PressedToMove();
+							int EnemyOnWay = 0;
+							//если мы можем сходить так, чтобы потом иметь возможность срубить, то в циклах for ищется эта позиция
+							if(direction == UL){
+								EatenOne.press_x = x + 1;
+								EatenOne.press_y = y - 1;
+								EnemyOnWay = 0;
+								for(int i = y + 1, j = x - 1; i < DESK_SIZE && j >= 0; i++, j--){//UL
+									if(desk[i][j].field == empty){
+										int X = -100, Y = -100;
+										direction = -1;
+										if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+											AIMoveChecker(i, j, EatOrNot, EatenOne);
+											Display();
+											EatAsMuchAsPossible(i, j, queen);
+											return;
+										}
+									}else{
+										break;
+									}
+								}
+							}
+							if(direction == UR){
+								EatenOne.press_x = x - 1;
+								EatenOne.press_y = y - 1;
+								EnemyOnWay = 0;
+								for(int i = y + 1, j = x + 1; i < DESK_SIZE && j < DESK_SIZE; i++, j++){//UR
+									if(desk[i][j].field == empty){
+										int X = -100, Y = -100;
+										direction = -1;
+										if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+											AIMoveChecker(i, j, EatOrNot, EatenOne);
+											Display();
+											EatAsMuchAsPossible(i, j, queen);
+											return;
+										}
+									}else{
+										break;
+									}
+								}
+							}
+							if(direction == DL){
+								EatenOne.press_x = x + 1;
+								EatenOne.press_y = y + 1;
+								EnemyOnWay = 0;
+								for(int i = y - 1, j = x - 1; i >= 0 && j >= 0; i--, j--){//DL
+									if(desk[i][j].field == empty){
+										int X = -100, Y = -100;
+										direction = -1;
+										if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+											AIMoveChecker(i, j, EatOrNot, EatenOne);
+											Display();
+											EatAsMuchAsPossible(i, j, queen);
+											return;
+										}
+									}else{
+										break;
+									}
+								}
+							}
+							if(direction == DR){
+								EatenOne.press_x = x - 1;
+								EatenOne.press_y = y + 1;
+								EnemyOnWay = 0;
+								for(int i = y - 1, j = x + 1; j < DESK_SIZE && i >= 0; i--, j++){//DR
+									if(desk[i][j].field == empty){
+										int X = -100, Y = -100;
+										direction = -1;
+										if(AIPossibilityToEatByQueen(i, j, &Y, &X, &direction)){
+											AIMoveChecker(i, j, EatOrNot, EatenOne);
+											Display();
+											EatAsMuchAsPossible(i, j, queen);
+											return;
+										}
+									}else{
+										break;
+									}
+								}
+							}
+							AIMoveChecker(y, x, EatOrNot, EatenOne);
+							Display();
+							EatAsMuchAsPossible(y, x, queen);
+							return;
+						}
 					}
 				}
 			}
@@ -1569,7 +2513,6 @@ void Keyboard(unsigned char key, int x, int y){
 		freeList();
 		exit(EXIT_SUCCESS);
 	}
-
 	if(Status == AFTER_GAME){
 		int i = 0, NameLen = strlen(Name);
 		char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
@@ -1610,13 +2553,12 @@ void Keyboard(unsigned char key, int x, int y){
 			}
 		}
 	}
-
 	// Enter
 	if(Status == GAME){
 		if(key == 13 && WasMoved == true){
 			if(Level == VSPEOPLE)
 				Enter();
-			else if(Level == VSAI){
+			else if(Level == LOWAI || Level == MIDAI){
 				int QUIT = 0;
 				if(turn == white)
 					NumOfMoves++;
@@ -1657,7 +2599,10 @@ void Keyboard(unsigned char key, int x, int y){
 
 				//тут вот должен вызываться компьютер
 				int tmp_cur_x = cur_cursor_x, tmp_cur_y = cur_cursor_y;
-				AIProPlayer();
+				if(Level == LOWAI)
+					AIProPlayer();
+				else if(Level == MIDAI)
+					AIProPlayerAdvanced();
 				cur_cursor_x = tmp_cur_x;
 				cur_cursor_y = tmp_cur_y;
 				WasMoved = false;
@@ -1675,7 +2620,6 @@ void Keyboard(unsigned char key, int x, int y){
 			}
 			return;
 		}
-
 		if((cursor == true) && (key == ' ')){
 			if((space_pressed == false) && (desk[cur_cursor_y][cur_cursor_x].field == occup) && desk[cur_cursor_y][cur_cursor_x].checker_side == turn){
 				PressedToMove();
@@ -1762,7 +2706,10 @@ void Keyboard(unsigned char key, int x, int y){
 
 								//тут вот должен вызываться компьютер
 								int tmp_cur_x = cur_cursor_x, tmp_cur_y = cur_cursor_y;
-								AIProPlayer();
+								if(Level == LOWAI)
+									AIProPlayer();
+								else if(Level == MIDAI)
+									AIProPlayerAdvanced();
 								cur_cursor_x = tmp_cur_x;
 								cur_cursor_y = tmp_cur_y;
 								WasMoved = false;
@@ -1802,6 +2749,8 @@ void SpecialKeyboard(int key, int x, int y){
 		else if(Status == AFTER_GAME)
 			Status = GAME;
 		else if(Status == SRECORDS)
+			Status = MENU;
+		else if(Status == OPTIONS)
 			Status = MENU;
 	}
 
@@ -1887,7 +2836,7 @@ void Mouse(int button, int state, int x, int y){
 		}
 		if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Recover_Position_button.Left_border && x <= Recover_Position_button.Right_border && \
             Y <= Recover_Position_button.Up_border && Y >= Recover_Position_button.Down_border){
-			int i = 0, j = 0, Side = 0, Role = 0, Focus = 0, X = 0, Y = 0, Turn = 0, WASmoved = 0;
+			int i = 0, j = 0, Side = 0, Role = 0, Focus = 0, X = 0, YY = 0, Turn = 0, WASmoved = 0;
 			FILE* sav = NULL;
 			sav = fopen(SAVES, "r");
 			if(sav == NULL){
@@ -1910,14 +2859,14 @@ void Mouse(int button, int state, int x, int y){
 			WasMoved = WASmoved;
 			for(i = 0; i < DESK_SIZE; i++){
 				for(j = 0; j < DESK_SIZE; j++){
-					if(fscanf(sav, "%d%*c%d%*c%d%*c%d%*c%d", &Side, &Role, &Focus, &X, &Y) == EOF){
+					if(fscanf(sav, "%d%*c%d%*c%d%*c%d%*c%d", &Side, &Role, &Focus, &X, &YY) == EOF){
 						fclose(sav);
 						return;
 					}
-					desk[Y][X].field = occup;
-					desk[Y][X].checker_side = Side;
-					desk[Y][X].role = Role;
-					desk[Y][X].focused.toMove = Focus;
+					desk[YY][X].field = occup;
+					desk[YY][X].checker_side = Side;
+					desk[YY][X].role = Role;
+					desk[YY][X].focused.toMove = Focus;
 				}
 			}
 			fclose(sav);
@@ -1933,6 +2882,20 @@ void Mouse(int button, int state, int x, int y){
             Y <= Records_button.Up_border && Y >= Records_button.Down_border){
 			Status = SRECORDS;
 			Records_button.Color = 0;
+		}
+		if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Options_button.Left_border && x <= Options_button.Right_border && \
+            Y <= Options_button.Up_border && Y >= Options_button.Down_border){
+			Status = OPTIONS;
+			Options_button.Color = 0;
+		}
+	}else if(Status == OPTIONS){
+		if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Easy_button.Left_border && x <= Easy_button.Right_border && \
+            Y <= Easy_button.Up_border && Y >= Easy_button.Down_border){
+			Level = LOWAI;
+		}
+		if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && x >= Medium_button.Left_border && x <= Medium_button.Right_border && \
+            Y <= Medium_button.Up_border && Y >= Medium_button.Down_border){
+			Level = MIDAI;
 		}
 	}
 }
@@ -1969,6 +2932,11 @@ void Mouse_Passive(int x, int y){
 			Records_button.Color = 1;
 		}else
 			Records_button.Color = 0;
+		if(x >= Options_button.Left_border && x <= Options_button.Right_border && \
+            Y <= Options_button.Up_border && Y >= Options_button.Down_border){
+			Options_button.Color = 1;
+		}else
+			Options_button.Color = 0;
 	}
 }
 
@@ -1997,15 +2965,3 @@ int main(int argc, char** argv){
 
 	return EXIT_SUCCESS;
 }
-/*
-#ifdef WINDOWS
-	Sleep(4000);
-#endif
-
-#ifdef LINUX
-	sleep(4);
-#endif
-*/
-
-// Учесть, файл для рекордов мог не существовать, тогда списка нет, head - указатель на корень списка
-// Учет количества ходов для рекордов есть пока только для игры игрок vs игрок
