@@ -45,7 +45,7 @@
 #define MIDAI 12
 
 int Status = GAME;
-int Level = MIDAI;
+int Level = VSPEOPLE;
 // Начальная широта и высота окна
 GLint Width = 1050, Height = 800;
 const int CubeSize = 100; // Размер квадрата
@@ -2949,7 +2949,7 @@ int main(int argc, char** argv){
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB);
 	glutInitWindowSize(Width, Height);
-	glutCreateWindow("Сheckers.exe");
+	glutCreateWindow("Checkers.exe");
 
 	glutDisplayFunc(Display);
 	glutIdleFunc(Display);
